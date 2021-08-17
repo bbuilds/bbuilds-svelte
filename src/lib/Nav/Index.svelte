@@ -50,20 +50,19 @@
 <header class="bg-bbuilds-black w-full py-2 relative z-50" role="banner">
 	<nav id="choose-project-observer-target-top" class="mx-auto w-full">
 		<div class="flex items-center h-12 px-4 sm:px-8">
-			{#if $page.path !== '/'}
-				<a
-					href="/"
-					aria-label="Branden Builds"
-					on:click={() => {
-						$mobileMenuState = false;
-						showHideOverflowY(false);
-					}}
-					class="flex items-center logo"
-				>
-					<LogoIcon />
-					<LogoName />
-				</a>
-			{/if}
+
+			<a
+				href="/"
+				aria-label="Branden Builds"
+				on:click={() => {
+					$mobileMenuState = false;
+					showHideOverflowY(false);
+				}}
+				class="flex items-center logo"
+			>
+				<LogoIcon />
+				<LogoName />
+			</a>
 			<ul
 				class="nav-items hidden px-2 space-x-6 items-center md:flex md:space-x-12 ml-auto mr-auto"
 			>

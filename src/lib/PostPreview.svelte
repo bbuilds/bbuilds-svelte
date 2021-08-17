@@ -5,7 +5,7 @@
 </script>
 
 <article>
-	<a href={`/blog/${post.slug}`} class="post-preview-link">
+	<a href={`/blog/${post.slug}`} class="post-preview-link" sveltekit:prefetch>
 		<div
 			class="bg-bbuilds-black m-auto overflow-hidden rounded-xl h-48 relative w-full flex items-center justify-center text-bbuilds-gray"
 		>
