@@ -58,6 +58,8 @@
 					$mobileMenuState = false;
 					showHideOverflowY(false);
 				}}
+				sveltekit:prefetch 
+				rel="external"
 				class="flex items-center logo"
 			>
 				<LogoIcon />

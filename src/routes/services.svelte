@@ -1,7 +1,9 @@
 <script>
+	import { page } from '$app/stores';
+	import MetaTags from '$lib/MetaTags.svelte';
 	import Process from '$lib/Process.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	export let url = `https://${$page.host}${$page.path}`;
 	
 	const services = [
 		{
@@ -59,11 +61,35 @@
 		}
 	];
 </script>
-<OpenGraph
-	title={'Web Developemnt, SEO, and Branding Services from Branden Builds'}
-	keywords={'web dev, frontend development, backend development'}
+
+<MetaTags
+	title="Web Developemnt, SEO, and Branding Services from Branden Builds"
 	description="Top notch web development, digital marketing, and branding services from Branden Builds."
-	image={`images/brandenbuilds-opengraph.jpg`}
+	keywords='web dev, frontend development, backend development, seo services'
+	openGraph={{
+		url,
+		title: 'Web Developemnt, SEO, and Branding Services from Branden Builds',
+		description: 'Top notch web development, digital marketing, and branding services from Branden Builds.',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Kick Ass Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Branden Builds WordPress Services",
+		"description": "Top notch web development, digital marketing, and branding services from Branden Builds.",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's Website Services"
+		}
+	}}
 />
 <section
 	id="services-hero"
@@ -76,7 +102,7 @@
 		<blockquote class="text-lg md:text-xl md:mb-6 lg:max-w-2/3 leading-snug">
 			"modern problems require modern solutions" <cite class="block text-md">-Dave Chappelle</cite>
 		</blockquote>
-		<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+		<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 	</div>
 	<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 		<BrandCube />
@@ -89,7 +115,7 @@
 				<li
 					class="mb-10"
 				>
-				<a href={service.url} sveltekit:prefetch class="service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out">
+				<a href={service.url} sveltekit:prefetch rel="external" class="service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out">
 					<picture class="md:p-8">
 						<img src={service.image} alt={`${service.title} Illustration`} class="w-1/4 md:w-100" />
 					</picture>

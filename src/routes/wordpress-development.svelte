@@ -1,14 +1,40 @@
 <script>
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	import { page } from '$app/stores';
+	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import '../content-styles.css';
+	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
-<OpenGraph
-	title={'Traditional WordPress Development Services | Branden Builds'}
-	keywords={'wordpress, php, plugin development, theme development'}
+
+<MetaTags
+	title="Traditional WordPress Development Services | Branden Builds"
 	description="WordPress Development Services by Branden Builds"
-	image={`images/brandenbuilds-opengraph.jpg`}
+	keywords='wordpress, php, plugin development, theme development'
+	openGraph={{
+		url,
+		title: 'Traditional WordPress Development Services | Branden Builds',
+		description: 'WordPress Development Services by Branden Builds',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds WordPress Website Development Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Branden Builds WordPress Services",
+		"description": "WordPress Development Services by Branden Builds",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's Website Services"
+		}
+	}}
 />
 
 <article>
@@ -22,7 +48,7 @@
 				Using WordPress as a traditional monolithic CMS? I come correct in every aspect of real
 				WordPress development.
 			</p>
-			<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+			<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 		</div>
 		<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 			<BrandCube />
@@ -60,7 +86,7 @@
 				<li>building Block Editor (Gutenberg) blocks</li>						
 				<li>optimization / website Audit.</li>			
 				<li>agency training</li>
-				<li><a href="/headless-wordpress-development">headless WordPress development</a></li>
+				<li><a sveltekit:prefetch rel="external" href="/headless-wordpress-development">headless WordPress development</a></li>
 			</ul>
 		</div>
 	</section>

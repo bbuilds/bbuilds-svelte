@@ -1,14 +1,40 @@
 <script>
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	import { page } from '$app/stores';
+	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import '../content-styles.css';
+
+	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
-<OpenGraph
-	title={'Branding and Story Telling Services | Branden Builds'}
-	keywords={'branding, market strategy, story telling'}
+<MetaTags
+	title="Building Brands and Story Telling Services | Branden Builds"
 	description="Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence."
-	image={`images/brandenbuilds-opengraph.jpg`}
+	keywords='branding, market strategy, story telling'
+	openGraph={{
+		url,
+		title: 'Building Brands and Story Telling Services | Branden Builds',
+		description: 'Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence.',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Website Development Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Branden Builds",
+		"description": "Building Brands and Story Telling Services",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's Branding Services"
+		}
+	}}
 />
 
 <article>
@@ -22,7 +48,7 @@
 				Telling a story requires an insightful, handcrafted presence propelled by emotional
 				intelligence.
 			</p>
-			<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+			<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 		</div>
 		<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 			<BrandCube />

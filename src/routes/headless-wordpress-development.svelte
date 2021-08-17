@@ -1,15 +1,41 @@
 <script>
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	import { page } from '$app/stores';
+	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
     import Blockquote from '$lib/Blockquote.svelte';
     import '../content-styles.css';
+
+	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
-<OpenGraph
-	title={'HeadLess WordPress Development | Branden Builds'}
-	keywords={'branden builds, web developer, wordpress, headless wordpress'}
-	description="Custom built headless wordpress developement by Branden Builds"
-	image={`images/brandenbuilds-opengraph.jpg`}
+<MetaTags
+	title="Headless WordPress Development | Branden Builds"
+	description="Custom built headless WordPress developement by Branden Builds"
+	keywords='branden builds, web developer, wordpress, headless wordpress'
+	openGraph={{
+		url,
+		title: 'Headless WordPress Development | Branden Builds',
+		description: 'Custom built headless WordPress developement by Branden Builds',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Kick Ass Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Branden Builds Headless WP Services",
+		"description": "Custom built headless WordPress developement by Branden Builds",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's Headless WP Services"
+		}
+	}}
 />
 
 <article>
@@ -34,7 +60,7 @@
 			<p>
 				This seems to be a popular buzz phrase in recent years but for a great meaning, a headless
 				content management system or headless CMS is a way to let the a CMS handle only the data and
-				a modern JS framework, like react, Vue, Svelte, etc handle how to display the data. <a
+				a modern JS framework, like react, Vue, Svelte, etc handle how to display the data. <a sveltekit:prefetch rel="external"
 					href="/blog/byoungz-headlesswp-gatsby">Headless Wordpress</a
 				> is using WordPress to manage the content as the backend.
 			</p>

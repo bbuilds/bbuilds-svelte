@@ -20,6 +20,7 @@
 				href={link.href}
 				target="_blank"
 				class="block transition duration-300 ease-in-out transform hover:-translate-y-1 text-bbuilds-teal w-6"
+				rel="external"
 			>
 				{@html link.icon}
 			</a>

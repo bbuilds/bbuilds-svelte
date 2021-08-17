@@ -17,6 +17,7 @@
 						sveltekit:prefetch
 						href={service.url}
 						class="p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out transform hover:-translate-y-2 hover:bg-bbuilds-black hover:text-bbuilds-yellow"
+						rel="external"
 					>
 						<h6 class="text-xs font-semibold leading-none">
 							{service.title}

@@ -5,7 +5,7 @@
 </script>
 
 <article>
-	<a href={`/blog/${post.slug}`} class="post-preview-link" sveltekit:prefetch>
+	<a href={`/blog/${post.slug}`} class="post-preview-link" sveltekit:prefetch rel="external">
 		<div
 			class="bg-bbuilds-black m-auto overflow-hidden rounded-xl h-48 relative w-full flex items-center justify-center text-bbuilds-gray"
 		>
@@ -19,7 +19,7 @@
 	</a>
 	<BlogHeader rawDate={post.date} title={post.title} tags={post.tags} postPreview={true} />
 	<p>{post.excerpt}</p>
-	<a class="flex items-center underline" href={`/blog/${post.slug}`}>Read Post</a>
+	<a sveltekit:prefetch rel="external" class="flex items-center underline" href={`/blog/${post.slug}`}>Read Post</a>
 </article>
 
 <style>

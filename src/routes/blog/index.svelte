@@ -1,20 +1,42 @@
 <script>
 	import { session } from '$app/stores';
+    import MetaTags from '$lib/MetaTags.svelte';
     import PostPreview from "$lib/PostPreview.svelte";
     import { page } from '$app/stores';
-	import OpenGraph from '$lib/OpenGraph.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	export let url = `https://${$page.host}${$page.path}`;
 
     const posts = $session.posts
 </script>
 
-<OpenGraph
-	title={'Branden Builds Blog'}
-	keywords={'frontend posts, backend posts, technical SEO articles'}
+<MetaTags
+	title="Branden Builds Blog"
 	description="A blog that has content on full stack web development, technical SEO, and branding."
-	{url}
-	image={`images/brandenbuilds-opengraph.jpg`}
+	keywords='frontend posts, backend posts, technical SEO articles'
+	openGraph={{
+		url,
+		title: 'Branden Builds Blog',
+		description: 'A blog that has content on full stack web development, technical SEO, and branding.',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Website Development Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Branden Builds Blog",
+		"description": "A blog that has content on full stack web development, technical SEO, and branding.",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Builds"
+		}
+	}}
 />
 
 

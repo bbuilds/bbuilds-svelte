@@ -9,22 +9,34 @@
 <script>
 	import { dev } from '$app/env';
 	import { page } from '$app/stores';
-
-	import OpenGraph from '$lib/OpenGraph.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
+	import MetaTags from '$lib/MetaTags.svelte';
 
 	export let status;
 	export let error;
 	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
-<OpenGraph
+<MetaTags
 	title={`Branden Builds | ${status}`}
-	keywords={'branden builds, web developer, frontend developer, backend developer'}
 	description="The system is down"
-	{url}
-	image={`images/brandenbuilds-opengraph.jpg`}
+	keywords='branden builds, web developer, frontend developer, backend developer'
+	openGraph={{
+		url,
+		title: `Branden Builds | ${status}`,
+		description: 'The system is down',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Website Development Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}}
 />
+
 <article>
 	<section
 		id="404-hero"

@@ -12,7 +12,6 @@
 </script>
 
 <script>
-	// import OpenGraph from '$lib/OpenGraph.svelte';
 	import MetaTags from '$lib/MetaTags.svelte';
 
 	import BrandCube from '$lib/svgs/brandcube.svelte';
@@ -59,12 +58,6 @@
 		}
 	}}
 />
-<!-- <OpenGraph
-	title={'Website and Web App Development Services | Branden Builds'}
-	keywords={'web development, frontend development, backend development'}
-	description="Website and Web App Development by Branden Builds"
-	image={`images/brandenbuilds-opengraph.jpg`}
-/> -->
 
 <article>
 	<header
@@ -76,7 +69,7 @@
 			<p class="md:w-1/2">
 				I like creating sexy user interfaces && lean and scalable backend systems.
 			</p>
-			<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+			<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 		</div>
 		<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 			<BrandCube />

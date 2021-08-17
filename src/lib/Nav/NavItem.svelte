@@ -16,6 +16,7 @@
 	class:highlighted={isHighlighted}
 	{href}
 	sveltekit:prefetch
+	rel="external"
 	on:click
 	class="text-bbuilds-teal hover:text-bbuilds-yellow mb-4"
 >
@@ -29,6 +30,8 @@
 				{#each children as item}
 					<li class="menu-item">
 						<a
+						sveltekit:prefetch 
+						rel="external"
 							href={item.href}
 							class="flex py-2 px-4 mb-0 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black"
 							>{item.title}</a

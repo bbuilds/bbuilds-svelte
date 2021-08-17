@@ -1,22 +1,45 @@
 <script>
 	import { page } from '$app/stores';
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
-<OpenGraph
-	title={'Contact Branden Builds'}
-	keywords={'branden builds, web developer, frontend developer, backend developer'}
+
+<MetaTags
+	title="Contact Branden Builds"
 	description="Contact branden builds for all of your web services."
-	{url}
-	image={`images/brandenbuilds-opengraph.jpg`}
+	keywords='branden builds, web developer, frontend developer, backend developer'
+	openGraph={{
+		url,
+		title: 'Contact Branden Builds',
+		description: 'Contact branden builds for all of your web services.',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Website Development Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Contact Branden Builds",
+		"description": "Contact branden builds for all of your web services.",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's Website Services"
+		}
+	}}
 />
 
 <article>
 	<section
 		id="contact-hero"
-		class="theme-full-height bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"
+		class="bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"
 	>
 		<div class="container mx-auto px-4 relative z-10">
 			<h1 class="text-xl md:text-3xl lg:max-w-2/3 mb-8">Contact Branden Builds</h1>

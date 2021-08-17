@@ -1,15 +1,48 @@
 <script>
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	import { page } from '$app/stores';
+	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import '../content-styles.css';
+
+	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
-<OpenGraph
+<MetaTags
+	title="Search Engine Optimization Services | Branden Builds"
+	description="Call everyone a peasant as they rank below you - SEO services by Branden Builds"
+	keywords='seo, search engine optimization, local seo, technical seo'
+	openGraph={{
+		url,
+		title: 'Search Engine Optimization Services | Branden Builds',
+		description: 'Leaderboard ranking SEO services by Branden Builds',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Kick Ass Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Branden Builds SEO Services",
+		"description": "Call everyone a peasant as they rank below you - SEO services by Branden Builds",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's SEO Services"
+		}
+	}}
+/>
+
+<!-- <OpenGraph
 	title={'Search Engine Optimization Services | Branden Builds'}
 	keywords={'seo, search engine optimization, local seo, technical seo'}
-	description="Top ranking SEO services by Branden Builds"
+	description="Leaderboard ranking SEO services by Branden Builds"
 	image={`images/brandenbuilds-opengraph.jpg`}
-/>
+/> -->
 
 <article>
 	<header
@@ -22,7 +55,7 @@
 				To excel at search engine optimization, one must understand the technical action needed to
 				improve search results.
 			</p>
-			<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+			<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 		</div>
 		<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 			<BrandCube />
@@ -106,7 +139,7 @@
 				<a
 					href="https://www.searchenginewatch.com/2014/04/09/80-of-local-searches-on-mobile-phones-convert-study/"
 					target="_blank"
-					rel="noopener noreferrer nofollow">80% of local searches on mobile phones convert</a
+					rel="noopener noreferrer nofollow external">80% of local searches on mobile phones convert</a
 				>. We can safely admit these numbers have increased since 2015 and will only continue. This
 				is one of the most important marketing strategies fo a local business ready to connect to
 				potential buyers.
@@ -119,7 +152,7 @@
 					<a
 						href="https://developers.google.com/search/docs/advanced/structured-data/local-business"
 						target="_blank"
-						rel="noopener noreferrer nofollow">Local Business Schema Markup</a
+						rel="noopener noreferrer nofollow external">Local Business Schema Markup</a
 					>
 				</li>
 				<li>Spam Fighting</li>

@@ -4,6 +4,7 @@
     export let nofollow = false;
     export let robotsProps = undefined;
     export let description = undefined;
+    export let keywords = undefined;
     export let mobileAlternate = undefined;
     export let languageAlternates = undefined;
     export let twitter = undefined;
@@ -55,6 +56,10 @@
   
     {#if description}
       <meta name="description" content={description} />
+    {/if}
+
+    {#if keywords}
+      <meta name="keywords" content={keywords} />
     {/if}
   
     {#if canonical}

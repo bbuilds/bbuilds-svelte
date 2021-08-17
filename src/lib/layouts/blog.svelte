@@ -1,11 +1,15 @@
 <script>
 	import { page } from '$app/stores';
-	import OpenGraph from '../OpenGraph.svelte';
+	import MetaTags from '$lib/MetaTags.svelte';
+
 	export let title;
 	export let excerpt;
 	export let image;
 	export let slug;
 	export let keywords;
+	export let genre;
+	export let date;
+	export let wordcount;
 	export let url = `https://${$page.host}${$page.path}`;
 
 	const socialLinks = [
@@ -40,7 +44,46 @@
 	];
 </script>
 
-<OpenGraph {title} {keywords} description={excerpt} {url} image={`images/blog/${slug}/${image}`} />
+<MetaTags
+	title={title}
+	description={excerpt}
+	keywords={keywords}
+	openGraph={{
+		url,
+		title: {title},
+		description: {excerpt},
+		images: [
+			{
+				url: `images/blog/${slug}/${image}`,
+				width: 800,
+				height: 600,
+				alt: {title}
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@type": "BlogPosting",
+        "headline": {title},
+        "image": `images/blog/${slug}/${image}`,
+        "award": "Best article ever written",
+        "editor": "Branden Builds",
+        "genre": {genre},
+        "keywords": {keywords},
+        "wordcount": {wordcount},
+        "publisher": "Branden Builds",
+        "url": {url},
+        "datePublished": {date},
+        "dateCreated": {date},
+        "dateModified": {date},
+        "description": {excerpt},
+        "author": {
+            "@type": "Person",
+            "name": "Branden Builds"
+        }
+	}}
+/>
+
 
 <article class="blog-post container max-w-3xl mx-auto py-10 lg:py-20 px-4">
 	<slot />
@@ -50,6 +93,7 @@
 			{#each socialLinks as link}
 				<li class="mr-2">
 					<a
+					sveltekit:prefetch rel="external"
 						href={link.href}
 						target="_blank"
 						class="block transition duration-300 ease-in-out transform hover:-translate-y-1"

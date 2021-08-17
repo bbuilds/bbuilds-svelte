@@ -1,6 +1,6 @@
 <script>
 	import { page, session } from '$app/stores';
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import PostPreview from '$lib/PostPreview.svelte';
 
@@ -14,13 +14,34 @@
 	});
 </script>
 
-<OpenGraph
+<MetaTags
+	title={`Posts tagged ${tag} on Branden Builds Blog `}
+	description={`Read Branden Build's articles on ${tag}`}
+	keywords={`frontend posts, backend posts, technical SEO articles tagged ${tag}`}
+	openGraph={{
+		url,
+		title: `Posts tagged ${tag} on Branden Builds Blog `,
+		description: `Read Branden Build's articles on ${tag}`,
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: `Branden Build's articles on ${tag}`
+			},
+		],
+		site_name: 'Branden Builds'
+	}}
+/>
+
+
+<!-- <OpenGraph
 	title={`Posts tagged ${tag} on Branden Builds Blog `}
 	keywords={`frontend posts, backend posts, technical SEO articles tagged ${tag}`}
 	description={`Read Branden Build's articles on ${tag}`}
 	{url}
 	image={`images/brandenbuilds-opengraph.jpg`}
-/>
+/> -->
 
 <section
 	id="tag-hero"

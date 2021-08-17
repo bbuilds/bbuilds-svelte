@@ -24,7 +24,7 @@
 		<p class="text-small">
 			Posted: <time dateTime={rawDate}>{dateDisplay}</time> | Tags: 
 			{#each tags as tag, index}
-				<a href={`/tags/${tag}`}>{tag}</a>{#if index < tags.length - 1},&nbsp;{/if}
+				<a sveltekit:prefetch rel="external" href={`/tags/${tag}`}>{tag}</a>{#if index < tags.length - 1},&nbsp;{/if}
 			{/each}
 		</p>
 	</div>
