@@ -1,0 +1,91 @@
+:root {
+	--bbuilds-yellow: #ffcd67;
+	--bbuilds-teal: #01fdf6;
+	--bbuilds-black: #292929;
+	--bbuilds-gray: #e6e7e8;
+}
+
+html {
+	font-size: calc(16px + (26 - 14) * ((100vw - 300px) / (1600 - 300)));
+}
+
+body {
+	@apply font-courier leading-normal text-base;
+}
+
+html,
+body {
+	/* scroll-behavior: smooth; */
+	overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+	@apply leading-snug;
+}
+
+@media (min-width: 768px) {
+	html {
+		font-size: 111%;
+	}
+}
+
+h1 {
+	@apply mt-0;
+	@apply text-2xl;
+
+	@media (min-width: 768px) {
+		@apply text-4xl;
+	}
+}
+
+h2 {
+	@apply text-2xl;
+	@media (min-width: 768px) {
+		@apply text-3xl;
+	}
+}
+
+h3 {
+	@apply text-2xl;
+}
+
+h4 {
+	@apply text-xl;
+}
+
+h5 {
+	@apply text-lg;
+}
+
+.button,
+button {
+	@apply bg-bbuilds-black text-bbuilds-yellow transition duration-300 ease-in-out py-2 px-4 border border-bbuilds-yellow rounded hover:bg-bbuilds-yellow  hover:text-bbuilds-black;
+}
+
+svg {
+	max-width: 100%;
+	height: auto;
+}
+
+.theme-full-height {
+	height: calc(100vh - 71px);
+}
+
+.scroll-in {
+	opacity: 0;
+	transform: translateZ(0);
+	perspective: 1000px;
+	backface-visibility: hidden;
+	transition: 1.5s all cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+/* 
+@media (min-width: 1024px) {
+	html {
+		font-size: 111%;
+	}
+} */
