@@ -13,6 +13,7 @@
 				class="object-cover absolute duration-200"
 				src={`/images/blog/${post.slug}/${post.image}`}
 				alt={post.title}
+				loading="lazy"
 			/>
 			<LinkSVG />
 		</div>

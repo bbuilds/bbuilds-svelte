@@ -43,6 +43,7 @@
 							width="40"
 							height="40"
 							class="p-1.5 bg-white h-12 w-12"
+							loading="lazy"
 						/>
 						<span class="ml-auto mr-auto">{skill.title}</span>
 					</li>
