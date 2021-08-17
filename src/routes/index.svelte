@@ -1,7 +1,6 @@
 <script context="module">
 	export async function load({ fetch }) {
 		const [resServices, resSkills] = await Promise.all([
-
 			fetch('/api/services'),
 			fetch('/api/skillset')
 		]);
@@ -22,7 +21,6 @@
 			error: new Error()
 		};
 	}
-
 </script>
 
 <script>
@@ -31,17 +29,39 @@
 	import Services from '$lib/Services.svelte';
 	import RecentPosts from '$lib/RecentPosts.svelte';
 	import Reccomendation from '$lib/Recommendations.svelte';
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	import MetaTags from '$lib/MetaTags.svelte';
 
 	export let servicesData;
 	export let skillsData;
 </script>
 
-<OpenGraph
-	title={'Branden Builds Web Developer && Storyteller'}
-	keywords={'freelance web developer, frontend developer, backend developer, headless CMS, headless wordpress'}
+<MetaTags
+	title="Branden Builds Web Developer && Storyteller"
 	description="Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories."
-	image={`images/brandenbuilds-opengraph.jpg`}
+	openGraph={{
+		url: 'https://brandenbuilds.com',
+		title: 'Branden Builds Web Developer && Storyteller',
+		description: 'Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Og Image Alt'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Branden Builds Web Developer && Storyteller",
+		"description": "Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's Website"
+		}
+	}}
 />
 
 <article>
@@ -64,7 +84,7 @@
 		skills={skillsData.skills}
 	/>
 
-	<Process title={"Methods && Madness"}  />
+	<Process title={'Methods && Madness'} />
 
 	<Reccomendation />
 

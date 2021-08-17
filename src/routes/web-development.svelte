@@ -12,7 +12,9 @@
 </script>
 
 <script>
-	import OpenGraph from '$lib/OpenGraph.svelte';
+	// import OpenGraph from '$lib/OpenGraph.svelte';
+	import MetaTags from '$lib/MetaTags.svelte';
+
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import '../content-styles.css';
     export let skillsData;
@@ -29,12 +31,40 @@
     
 </script>
 
-<OpenGraph
+<MetaTags
+	title="Website and Web App Development Services | Branden Builds"
+	description="Website and Web App Development by Branden Builds"
+	openGraph={{
+		url: 'https://brandenbuilds.com',
+		title: 'Website and Web App Development Services | Branden Builds',
+		description: 'Website and Web App Development by Branden Builds',
+		images: [
+			{
+				url: 'images/brandenbuilds-opengraph.jpg',
+				width: 800,
+				height: 600,
+				alt: 'Branden Builds Website Development Services'
+			},
+		],
+		site_name: 'Branden Builds'
+	}},
+	jsonLd={{
+		"@context": "http://schema.org",
+		"@type": "WebPage",
+		"name": "Website and Web App Development Services | Branden Builds",
+		"description": "Website and Web App Development by Branden Builds",
+		"publisher": {
+			"@type": "ProfilePage",
+			"name": "Branden Build's Website Services"
+		}
+	}}
+/>
+<!-- <OpenGraph
 	title={'Website and Web App Development Services | Branden Builds'}
 	keywords={'web development, frontend development, backend development'}
 	description="Website and Web App Development by Branden Builds"
 	image={`images/brandenbuilds-opengraph.jpg`}
-/>
+/> -->
 
 <article>
 	<header
