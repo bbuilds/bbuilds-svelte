@@ -5,7 +5,6 @@
 	import PostPreview from '$lib/PostPreview.svelte';
 
 	export let tag = $page.params.tag;
-	export let url = `https://${$page.host}${$page.path}`;
 
 	const posts = $session.posts;
 	console.log('posts', posts);
@@ -18,20 +17,6 @@
 	title={`Posts tagged ${tag} on Branden Builds Blog `}
 	description={`Read Branden Build's articles on ${tag}`}
 	keywords={`frontend posts, backend posts, technical SEO articles tagged ${tag}`}
-	openGraph={{
-		url,
-		title: `Posts tagged ${tag} on Branden Builds Blog `,
-		description: `Read Branden Build's articles on ${tag}`,
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: `Branden Build's articles on ${tag}`
-			},
-		],
-		site_name: 'Branden Builds'
-	}}
 />
 
 

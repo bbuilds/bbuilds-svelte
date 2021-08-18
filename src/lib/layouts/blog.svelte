@@ -48,7 +48,7 @@
 	title={title}
 	description={excerpt}
 	keywords={keywords}
-	image={`images/blog/${slug}/${image}`}
+	image={`https://${$page.host}images/blog/${slug}/${image}`}
 	url={url}
 	jsonLd={{
 		"@type": "BlogPosting",

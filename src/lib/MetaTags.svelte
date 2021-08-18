@@ -8,7 +8,7 @@
     export let keywords = undefined;
     export let canonical = undefined;
     export let url = `https://${$page.host}${$page.path}`;
-    export let image = "images/brandenbuilds-opengraph.jpg";
+    export let image = "https://${$page.host}images/brandenbuilds-opengraph.jpg";
     export let type = 'article';
     export let jsonLd = undefined;
 
