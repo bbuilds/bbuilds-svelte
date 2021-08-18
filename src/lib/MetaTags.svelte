@@ -8,7 +8,7 @@
     export let keywords = undefined;
     export let canonical = undefined;
     export let url = `https://${$page.host}${$page.path}`;
-    export let image = "https://${$page.host}images/brandenbuilds-opengraph.jpg";
+    export let image = `https://${$page.host}/images/brandenbuilds-opengraph.jpg`;
     export let type = 'article';
     export let jsonLd = undefined;
 
@@ -64,7 +64,7 @@
     {/if}
   
    	<!-- https://ogp.me -->
-    <meta property="og:image" content={`${$page.host}/${image}`} />
+    <meta property="og:image" content={`${image}`} />
     <meta property="og:description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:type" content={type} />
