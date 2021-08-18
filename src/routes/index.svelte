@@ -30,7 +30,6 @@
 	import RecentPosts from '$lib/RecentPosts.svelte';
 	import Reccomendation from '$lib/Recommendations.svelte';
 	import MetaTags from '$lib/MetaTags.svelte';
-
 	export let servicesData;
 	export let skillsData;
 </script>
