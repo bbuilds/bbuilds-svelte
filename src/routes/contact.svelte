@@ -1,8 +1,6 @@
 <script>
-	import { page } from '$app/stores';
 	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
-	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
 
@@ -10,22 +8,7 @@
 	title="Contact Branden Builds"
 	description="Contact branden builds for all of your web services."
 	keywords='branden builds, web developer, frontend developer, backend developer'
-	openGraph={{
-		url,
-		title: 'Contact Branden Builds',
-		description: 'Contact branden builds for all of your web services.',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Branden Builds Website Development Services'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Contact Branden Builds",
 		"description": "Contact branden builds for all of your web services.",
@@ -39,7 +22,7 @@
 <article>
 	<section
 		id="contact-hero"
-		class="bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"
+		class="py-20 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"
 	>
 		<div class="container mx-auto px-4 relative z-10">
 			<h1 class="text-xl md:text-3xl lg:max-w-2/3 mb-8">Contact Branden Builds</h1>

@@ -37,23 +37,10 @@
 
 <MetaTags
 	title="Branden Builds Web Developer && Storyteller"
-	description="Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories."
-	openGraph={{
-		url: 'https://brandenbuilds.com',
-		title: 'Branden Builds Web Developer && Storyteller',
-		description: 'Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Og Image Alt'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
+	description="Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories"
+	keywords={'freelance web developer, frontend developer, backend developer, headless CMS, headless wordpress'}
+	type="company"
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Branden Builds Web Developer && Storyteller",
 		"description": "Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.",

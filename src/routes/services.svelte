@@ -1,9 +1,7 @@
 <script>
-	import { page } from '$app/stores';
 	import MetaTags from '$lib/MetaTags.svelte';
 	import Process from '$lib/Process.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
-	export let url = `https://${$page.host}${$page.path}`;
 	
 	const services = [
 		{
@@ -66,22 +64,7 @@
 	title="Web Developemnt, SEO, and Branding Services from Branden Builds"
 	description="Top notch web development, digital marketing, and branding services from Branden Builds."
 	keywords='web dev, frontend development, backend development, seo services'
-	openGraph={{
-		url,
-		title: 'Web Developemnt, SEO, and Branding Services from Branden Builds',
-		description: 'Top notch web development, digital marketing, and branding services from Branden Builds.',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Branden Builds Kick Ass Services'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Branden Builds WordPress Services",
 		"description": "Top notch web development, digital marketing, and branding services from Branden Builds.",

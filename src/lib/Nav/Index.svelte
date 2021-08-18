@@ -91,7 +91,7 @@
 	:global(.logo .logo-icon) {
 		@apply h-auto;
 		max-width: 25px;
-		min-width: 25px;
+		min-width: 18px;
 	}
 
 	:global(.logo .logo-icon-left-bar) {

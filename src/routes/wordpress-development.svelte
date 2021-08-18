@@ -11,22 +11,7 @@
 	title="Traditional WordPress Development Services | Branden Builds"
 	description="WordPress Development Services by Branden Builds"
 	keywords='wordpress, php, plugin development, theme development'
-	openGraph={{
-		url,
-		title: 'Traditional WordPress Development Services | Branden Builds',
-		description: 'WordPress Development Services by Branden Builds',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Branden Builds WordPress Website Development Services'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Branden Builds WordPress Services",
 		"description": "WordPress Development Services by Branden Builds",

@@ -4,12 +4,14 @@
     tags: 
         - svelte
         - blog
-    date: 2021-08-03
+    date: 2021-08-01T18:22:22
     image: branden-builds-website-blog.png
     id: b1
     excerpt: Branden Builds has officially launched and I'm very excited to show the world. 
     slug: branden-builds-launches
     keywords: branding, website launch, svelte, branden builds, freelance web developer, frontend developer
+    genre: websites
+    wordcount: 343
 ---
 
 <script>
@@ -34,7 +36,7 @@ I reached out to a previous coworker and awesome friend, Mister Munn, who does p
 
 ### Sveltekit
 
-I've been hearing the help on Svelte and was eager to try a new framework. I love React and Vue, but always game to learn some new tech.  I decided on Svelte after running through a tutorial and loved how easy and simple it was to include use popular frontend techniques like reactivity and routing. 
+I've been hearing the help on Svelte and was eager to try a new framework. I love React and Vue but always game to learn some new tech.  I decided on Svelte after running through a tutorial and loved how easy and simple it was to include use popular frontend techniques like reactivity and routing. 
 
 I ran through Gatsby and loved it as well, which I used over at my [digital nomad blog](https://byoungz.com) and didn't really have any complaints. I just honestly wanted to play with some new tech.
 
@@ -52,5 +54,5 @@ I wanted a tool similar to Gatsby Image that handles optimization, srcset, and o
 
 ## Pain Points
 
-**Image handling** in svelte/svelte kit is not a great experience yet. The biggest issue for me, especially after being spoiled with GatsbyImage, is a way to dynamically use images in Vite Image Tools. Vite Image Tools is awesome, but uses an import statement which means no template literals so I have to hard code in each image for my blog. This is gonna be a focus point in next iteration of my blog.
+**Image handling** in svelte/svelte kit is not a great experience yet. The biggest issue for me, especially after being spoiled with GatsbyImage, is a way to dynamically use images in Vite Image Tools. Vite Image Tools is awesome, but uses an import statement which means no template literals so I have to hard code in each image for my blog. This is gonna be a focal point in the next iteration of my blog.
 

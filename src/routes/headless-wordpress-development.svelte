@@ -1,33 +1,15 @@
 <script>
-	import { page } from '$app/stores';
 	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
     import Blockquote from '$lib/Blockquote.svelte';
     import '../content-styles.css';
-
-	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
 <MetaTags
 	title="Headless WordPress Development | Branden Builds"
 	description="Custom built headless WordPress developement by Branden Builds"
 	keywords='branden builds, web developer, wordpress, headless wordpress'
-	openGraph={{
-		url,
-		title: 'Headless WordPress Development | Branden Builds',
-		description: 'Custom built headless WordPress developement by Branden Builds',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Branden Builds Kick Ass Services'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Branden Builds Headless WP Services",
 		"description": "Custom built headless WordPress developement by Branden Builds",

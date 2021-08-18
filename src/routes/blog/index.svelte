@@ -28,7 +28,6 @@
 		site_name: 'Branden Builds'
 	}},
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Branden Builds Blog",
 		"description": "A blog that has content on full stack web development, technical SEO, and branding.",

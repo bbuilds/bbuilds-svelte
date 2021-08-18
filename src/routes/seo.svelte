@@ -1,32 +1,14 @@
 <script>
-	import { page } from '$app/stores';
 	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import '../content-styles.css';
-
-	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
 <MetaTags
 	title="Search Engine Optimization Services | Branden Builds"
 	description="Call everyone a peasant as they rank below you - SEO services by Branden Builds"
 	keywords='seo, search engine optimization, local seo, technical seo'
-	openGraph={{
-		url,
-		title: 'Search Engine Optimization Services | Branden Builds',
-		description: 'Leaderboard ranking SEO services by Branden Builds',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Branden Builds Kick Ass Services'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Branden Builds SEO Services",
 		"description": "Call everyone a peasant as they rank below you - SEO services by Branden Builds",

@@ -33,22 +33,8 @@
 <MetaTags
 	title="Website and Web App Development Services | Branden Builds"
 	description="Website and Web App Development by Branden Builds"
-	openGraph={{
-		url: 'https://brandenbuilds.com',
-		title: 'Website and Web App Development Services | Branden Builds',
-		description: 'Website and Web App Development by Branden Builds',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Branden Builds Website Development Services'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
+	keywords="web dev, frontend development, backend development, API development, fullstack development"
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Website and Web App Development Services | Branden Builds",
 		"description": "Website and Web App Development by Branden Builds",

@@ -1,32 +1,15 @@
 <script>
-	import { page } from '$app/stores';
 	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import '../content-styles.css';
 
-	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
 <MetaTags
 	title="Building Brands and Story Telling Services | Branden Builds"
 	description="Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence."
-	keywords='branding, market strategy, story telling'
-	openGraph={{
-		url,
-		title: 'Building Brands and Story Telling Services | Branden Builds',
-		description: 'Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence.',
-		images: [
-			{
-				url: 'images/brandenbuilds-opengraph.jpg',
-				width: 800,
-				height: 600,
-				alt: 'Branden Builds Website Development Services'
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
+	keywords="branding, market strategy, story telling"
 	jsonLd={{
-		"@context": "http://schema.org",
 		"@type": "WebPage",
 		"name": "Branden Builds",
 		"description": "Building Brands and Story Telling Services",

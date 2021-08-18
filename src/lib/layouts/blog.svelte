@@ -48,20 +48,8 @@
 	title={title}
 	description={excerpt}
 	keywords={keywords}
-	openGraph={{
-		url,
-		title: {title},
-		description: {excerpt},
-		images: [
-			{
-				url: `images/blog/${slug}/${image}`,
-				width: 800,
-				height: 600,
-				alt: {title}
-			},
-		],
-		site_name: 'Branden Builds'
-	}},
+	image={`images/blog/${slug}/${image}`}
+	url={url}
 	jsonLd={{
 		"@type": "BlogPosting",
         "headline": {title},
