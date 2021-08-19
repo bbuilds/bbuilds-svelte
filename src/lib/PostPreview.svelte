@@ -14,10 +14,9 @@
 			<Image class="object-cover img" wrapperClass="object-cover absolute top-0" alt={post.title} src={`/images/blog/${post.slug}/${post.image}`} />
 			<LinkSVG />
 		</div>
+		<BlogHeader rawDate={post.date} title={post.title} tags={post.tags} postPreview={true} />
+		<p>{post.excerpt}</p>
 	</a>
-	<BlogHeader rawDate={post.date} title={post.title} tags={post.tags} postPreview={true} />
-	<p>{post.excerpt}</p>
-	<a sveltekit:prefetch rel="external" class="flex items-center underline" href={`/blog/${post.slug}`}>Read Post</a>
 </article>
 
 <style>

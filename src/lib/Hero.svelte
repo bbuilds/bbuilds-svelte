@@ -27,7 +27,7 @@
 <section id="home-banner" class="hero-home bg-bbuilds-gray">
 	<div class="flex flex-col justify-center items-center h-full px-4">
 		<header class="header-text text-center px-15">
-			<h1 class="text-xl">{title}</h1>
+			<h1 class="text-xl">{title} <span class="sr-only">Branden Builds a headless wordpress developer</span></h1>
 			<div class="flex items-center justify-center mb-4 text-bbuilds-black hero-logo max-w-100">
 				<LogoIcon />
 				<LogoName />
@@ -59,9 +59,11 @@
 	:global(.hero-logo .logo-icon) {
 		min-width: 18px;
 		@apply mr-1;
+		max-width:25px;
 	}
 
 	.hero-home {
+		min-height: 15.625rem;
 		height: calc(75vh);
 	}
 

@@ -22,9 +22,14 @@
 	{/if}
 	<div class="post-meta {postPreview ? 'mb-2' : 'mb-6'}">
 		<p class="text-small">
-			Posted: <time dateTime={rawDate}>{dateDisplay}</time> | Tags: 
+			Posted: <time dateTime={rawDate}>{dateDisplay}</time> | Tags:
 			{#each tags as tag, index}
-				<a sveltekit:prefetch rel="external" href={`/tags/${tag}`}>{tag}</a>{#if index < tags.length - 1},&nbsp;{/if}
+				{#if postPreview}
+					{tag}{#if index < tags.length - 1},&nbsp;{/if}
+				{:else}
+					<a sveltekit:prefetch rel="external" href={`/tags/${tag}`}>{tag}</a
+					>{#if index < tags.length - 1},&nbsp;{/if}
+				{/if}
 			{/each}
 		</p>
 	</div>
