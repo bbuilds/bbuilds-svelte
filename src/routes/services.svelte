@@ -2,7 +2,7 @@
 	import MetaTags from '$lib/MetaTags.svelte';
 	import Process from '$lib/Process.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
-	
+
 	const services = [
 		{
 			title: 'Web Development',
@@ -26,7 +26,7 @@
 				'Headlesss Wordpress / Jamstack Builds',
 				'Block Editor Development',
 				'traditional theme development',
-				'agency development training',
+				'agency development training'
 			],
 			image: '/images/wordpress-development-illustration.svg',
 			url: '/wordpress-development'
@@ -39,7 +39,7 @@
 				'market research',
 				'brand strategy / positioning',
 				'brand identity',
-				'storytelling',
+				'storytelling'
 			],
 			image: '/images/branding-service-illustration.svg',
 			url: '/branding'
@@ -52,7 +52,7 @@
 				'local ranking',
 				'on site optimization',
 				'technical seo analysis',
-				'complete SEO audit',
+				'complete SEO audit'
 			],
 			image: '/images/seo-service-illustration.svg',
 			url: '/seo'
@@ -63,14 +63,15 @@
 <MetaTags
 	title="Web Developemnt, SEO, and Branding Services from Branden Builds"
 	description="Top notch web development, digital marketing, and branding services from Branden Builds."
-	keywords='web dev, frontend development, backend development, seo services'
+	keywords="web dev, frontend development, backend development, seo services"
 	jsonLd={{
-		"@type": "WebPage",
-		"name": "Branden Builds WordPress Services",
-		"description": "Top notch web development, digital marketing, and branding services from Branden Builds.",
-		"publisher": {
-			"@type": "ProfilePage",
-			"name": "Branden Build's Website Services"
+		'@type': 'WebPage',
+		name: 'Branden Builds WordPress Services',
+		description:
+			'Top notch web development, digital marketing, and branding services from Branden Builds.',
+		publisher: {
+			'@type': 'ProfilePage',
+			name: "Branden Build's Website Services"
 		}
 	}}
 />
@@ -85,7 +86,9 @@
 		<blockquote class="text-lg md:text-xl md:mb-6 lg:max-w-2/3 leading-snug">
 			"modern problems require modern solutions" <cite class="block text-md">-Dave Chappelle</cite>
 		</blockquote>
-		<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+		<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block"
+			>Talk nerdy to me</a
+		>
 	</div>
 	<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 		<BrandCube />
@@ -96,17 +99,22 @@
 		<ul>
 			{#each services as service, index}
 				<li
-					class="mb-10"
+					class="mb-10 service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out relative"
 				>
-				<a href={service.url} sveltekit:prefetch rel="external" class="service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out">
 					<picture class="md:p-8">
 						<img src={service.image} alt={`${service.title} Illustration`} class="w-1/4 md:w-100" />
 					</picture>
 					<div class="py-8">
-						
-						<h6 class="text-xl font-semibold leading-none mb-4">
-							{service.title}
-						</h6>
+						<a
+							href={service.url}
+							sveltekit:prefetch
+							rel="external"
+							class="link-shield"
+						>
+							<h6 class="text-xl font-semibold leading-none mb-4">
+								{service.title}
+							</h6>
+						</a>
 						<p class="mt-2">
 							{service.tagline}
 						</p>
@@ -118,7 +126,6 @@
 							</ul>
 						{/if}
 					</div>
-				</a>
 				</li>
 			{/each}
 		</ul>

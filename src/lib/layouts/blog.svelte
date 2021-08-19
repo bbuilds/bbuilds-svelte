@@ -45,33 +45,32 @@
 </script>
 
 <MetaTags
-	title={title}
+	{title}
 	description={excerpt}
-	keywords={keywords}
+	{keywords}
 	image={`https://${$page.host}/images/blog/${slug}/${image}`}
-	url={url}
+	{url}
 	jsonLd={{
-		"@type": "BlogPosting",
-        "headline": {title},
-        "image": `images/blog/${slug}/${image}`,
-        "award": "Best article ever written",
-        "editor": "Branden Builds",
-        "genre": {genre},
-        "keywords": {keywords},
-        "wordcount": {wordcount},
-        "publisher": "Branden Builds",
-        "url": {url},
-        "datePublished": {date},
-        "dateCreated": {date},
-        "dateModified": {date},
-        "description": {excerpt},
-        "author": {
-            "@type": "Person",
-            "name": "Branden Builds"
-        }
+		'@type': 'BlogPosting',
+		headline: { title },
+		image: `images/blog/${slug}/${image}`,
+		award: 'Best article ever written',
+		editor: 'Branden Builds',
+		genre: { genre },
+		keywords: { keywords },
+		wordcount: { wordcount },
+		publisher: 'Branden Builds',
+		url: { url },
+		datePublished: { date },
+		dateCreated: { date },
+		dateModified: { date },
+		description: { excerpt },
+		author: {
+			'@type': 'Person',
+			name: 'Branden Builds'
+		}
 	}}
 />
-
 
 <article class="blog-post container max-w-3xl mx-auto py-10 lg:py-20 px-4">
 	<slot />
@@ -81,7 +80,8 @@
 			{#each socialLinks as link}
 				<li class="mr-2">
 					<a
-					sveltekit:prefetch rel="external"
+						sveltekit:prefetch
+						rel="external"
 						href={link.href}
 						target="_blank"
 						class="block transition duration-300 ease-in-out transform hover:-translate-y-1"
@@ -121,6 +121,30 @@
 	:global(.blog-post p) {
 		margin-top: 0.5em;
 		margin-bottom: 0.5em;
+	}
+
+	:global(.blog-post a) {
+		margin-top: 0.5em;
+		margin-bottom: 0.5em;
+		position: relative;
+		text-decoration: underline;
+	}
+
+	:global(.blog-post a::before) {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 0;
+		height: 2px;
+		@apply bg-bbuilds-black;
+		transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+	}
+
+	:global(.blog-post a:hover::before) {
+		left: 0;
+		right: auto;
+		width: 100%;
 	}
 
 	:global(.post-img) {
