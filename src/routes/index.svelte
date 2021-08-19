@@ -40,12 +40,13 @@
 	keywords={'freelance web developer, frontend developer, backend developer, headless CMS, headless wordpress'}
 	type="company"
 	jsonLd={{
-		"@type": "WebPage",
-		"name": "Branden Builds Web Developer && Storyteller",
-		"description": "Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.",
-		"publisher": {
-			"@type": "ProfilePage",
-			"name": "Branden Build's Website"
+		'@type': 'WebPage',
+		name: 'Branden Builds Web Developer && Storyteller',
+		description:
+			'Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.',
+		publisher: {
+			'@type': 'ProfilePage',
+			name: "Branden Build's Website"
 		}
 	}}
 />
@@ -55,10 +56,10 @@
 		title={`Greetings I'm`}
 		subtitle={`I enjoy building...`}
 		serviceslist={[
-			'Engaging Experiences 🦁',
+			'Engaging Experiences 🔮',
 			'Lean Products ⚡',
-			'Accelerated Brands 🌱',
-			'Technical SEO 🤓'
+			'Captivating Stories 🌱',
+			'Scalable SEO 📈'
 		]}
 	/>
 
