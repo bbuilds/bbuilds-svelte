@@ -7,7 +7,7 @@
 
 </script>
 
-<section id="services" class="py-10 lg:py-20 bg-bbuilds-yellow text-bbuilds-black"  data-aos="fade-up">
+<section id="services" class="py-10 lg:py-20 bg-bbuilds-yellow text-bbuilds-black" >
 	<div class="container mx-auto px-4">
 		<h2 class="text-center mb-10">{servicesTitle}</h2>
 		<ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

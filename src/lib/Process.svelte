@@ -56,7 +56,7 @@
 	});
 </script>
 
-<section id="process" class="py-10 lg:py-20 bg-bbuilds-black text-bbuilds-gray" data-aos="fade-up">
+<section id="process" class="py-10 lg:py-20 bg-bbuilds-black text-bbuilds-gray">
 	<div class="px-4 mx-auto lg:px-0">
 		{#if title}
 			<h2 class="text-center mb-10">{title}</h2>
