@@ -17,7 +17,7 @@
 			href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
 				`${title} by @brandenbuilds ${url}`
 			)}`,
-			alt: 'Twitter',
+			alt: 'Share this post on Twitter',
 			icon: '/svg/logos/twitter.svg',
 			trackingName: 'twitter'
 		},
@@ -25,19 +25,19 @@
 			href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
 				`${url}`
 			)}&t=${title}`,
-			alt: 'Facebook',
+			alt: 'Share this post on Facebook',
 			icon: '/svg/logos/facebook.svg',
 			trackingName: 'facebook'
 		},
 		{
 			href: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-			alt: 'Linkedin',
+			alt: 'Share this post on Linkedin',
 			icon: '/svg/logos/linkedin.svg',
 			trackingName: 'linkedin'
 		},
 		{
 			href: `http://www.reddit.com/submit?url=${encodeURIComponent(`${url}&title=${title}`)}`,
-			alt: 'Reddit',
+			alt: 'Share this post on Reddit',
 			icon: '/svg/logos/reddit.svg',
 			trackingName: 'reddit'
 		}
