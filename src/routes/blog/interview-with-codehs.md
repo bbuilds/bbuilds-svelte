@@ -25,6 +25,6 @@
 <FeaturedImage src={FeaturedImageObj} alt={title} />
 <BlogHeader rawDate={date} {title} {tags} />
 
-I was contacted from a repersentative of <a href="https://codehs.com/" target="_blank">CodeHS</a> to complete an interview with their career blog, <a href="https://codinginthewild.com/" target="_blank" rel="external">Coding in the Wild.</a> I discuss different projects I've worked on and what it's like to be a digital nomad (pre-covid.)
+I was contacted from a repersentative of <a href="https://codehs.com/" target="_blank">CodeHS</a> to complete an interview with their career blog, <a href="https://codinginthewild.com/" target="_blank" rel="external noopener noreferrer">Coding in the Wild.</a> I discuss different projects I've worked on and what it's like to be a digital nomad (pre-covid.)
 
 You can read the <a href="https://codinginthewild.com/coding-for-custom-web-applications-a407fce6c8bd" target="_blank" rel="external">entire interview here. </a>

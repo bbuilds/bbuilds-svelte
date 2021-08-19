@@ -21,7 +21,7 @@
 				href={link.href}
 				target="_blank"
 				class="block transition duration-300 ease-in-out transform hover:-translate-y-1 text-bbuilds-teal w-6"
-				rel="external"
+				rel="noopener noreferrer"
 			>
 				{@html link.icon}
 				<span class="sr-only">{`Link to Branden Builds ${link.label}`}</span>
