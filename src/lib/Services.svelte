@@ -7,12 +7,12 @@
 
 </script>
 
-<section id="services" class="py-10 lg:py-20 bg-bbuilds-yellow text-bbuilds-black">
+<section id="services" class="py-10 lg:py-20 bg-bbuilds-yellow text-bbuilds-black"  data-aos="fade-up">
 	<div class="container mx-auto px-4">
 		<h2 class="text-center mb-10">{servicesTitle}</h2>
 		<ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each services as service}
-				<li class="flex items-center">
+			{#each services as service, index}
+				<li class="flex items-center" data-aos="fade-right" data-aos-delay={`${index}00`}>
 					<a
 						sveltekit:prefetch
 						href={service.url}
@@ -36,7 +36,7 @@
 			</p>
 			<ul class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
 				{#each skills as skill, index}
-					<li class="flex items-center bg-bbuilds-gray text-center shadow-sm">
+					<li class="flex items-center bg-bbuilds-gray text-center shadow-sm" data-aos="fade-right" data-aos-delay={`${index}00`}>
 						<img
 							src={skill.logo}
 							alt={`${skill.title} Logo`}

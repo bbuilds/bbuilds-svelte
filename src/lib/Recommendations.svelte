@@ -1,4 +1,4 @@
-<section id="street-cred" class="bg-bbuilds-yellow py-10 lg:py-20">
+<section id="street-cred" class="bg-bbuilds-yellow py-10 lg:py-20" data-aos="fade-up">
     <div class="container mx-auto px-4 text-center">
         <h2 class="sr-only">Branden Builds Reccomendation</h2>
         <figure>

@@ -5,7 +5,7 @@
     const posts = $session.posts
 </script>
 
-<section id="recent-posts" class="bg-bbuilds-gray py-10 lg:py-20">
+<section id="recent-posts" class="bg-bbuilds-gray py-10 lg:py-20" data-aos="fade-up">
     <div class="container mx-auto px-4">
         <h2 class=" mt-6 mb-16 text-center text-h2">Blog</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">

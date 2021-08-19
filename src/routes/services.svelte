@@ -100,6 +100,7 @@
 			{#each services as service, index}
 				<li
 					class="mb-10 service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out relative"
+					
 				>
 					<picture class="md:p-8">
 						<img src={service.image} alt={`${service.title} Illustration`} class="w-1/4 md:w-100" />
