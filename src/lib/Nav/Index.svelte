@@ -1,5 +1,4 @@
 <script>
-	import { page } from '$app/stores';
 	import NavItem from './NavItem.svelte';
 	import MobileMenu from './MobileMenu.svelte';
 	import MobileMenuToggle from './Toggle.svelte';
@@ -45,6 +44,7 @@
 			href: '/contact'
 		}
 	];
+	
 </script>
 
 <header class="bg-bbuilds-black w-full py-2 relative z-50" role="banner">

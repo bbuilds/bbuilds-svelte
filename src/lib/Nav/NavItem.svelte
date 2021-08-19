@@ -1,19 +1,14 @@
 <script>
 	import { page } from '$app/stores';
-	import { fly } from 'svelte/transition';
 
 	export let navItem;
 
-	const { href, isHighlighted, title, children } = navItem;
-
-	$: isActivePage = $page.path === '/' ? /\/$/.test(href) : href.indexOf($page.path) >= 0;
-
+	const { href, title, children } = navItem;
 
 </script>
 
 <a
-	class:active={isActivePage}
-	class:highlighted={isHighlighted}
+	class:active={$page.path === href}
 	{href}
 	sveltekit:prefetch
 	rel="external"
@@ -30,7 +25,8 @@
 				{#each children as item}
 					<li class="menu-item">
 						<a
-						sveltekit:prefetch 
+						sveltekit:prefetch
+						class:active={$page.path === item.href}
 						rel="external"
 							href={item.href}
 							class="flex py-2 px-4 mb-0 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black"
@@ -59,7 +55,8 @@
 			opacity: 0;
 		}
 	}
-	.active {
+
+	a.active {
 		@apply text-bbuilds-yellow;
 	}
 </style>
