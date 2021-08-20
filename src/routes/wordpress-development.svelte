@@ -3,7 +3,6 @@
 	import MetaTags from '$lib/MetaTags.svelte';
 	import BrandCube from '$lib/svgs/brandcube.svelte';
 	import '../content-styles.css';
-	export let url = `https://${$page.host}${$page.path}`;
 </script>
 
 

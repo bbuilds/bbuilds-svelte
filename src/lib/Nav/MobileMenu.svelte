@@ -23,20 +23,22 @@
 </script>
 
 {#if $mobileMenuState}
-	<div
+	<ul
 		class="nav-items absolute flex flex-col px-4 pt-8 pb-20 overflow-y-scroll w-screen h-screen space-y-xx-small bg-bbuilds-black z-10 border-t border-bbuilds-yellow"
 		transition:fly="{{duration: 200, y: 20, opacity: 0.5}}">
 		{#each navItems as navItem}
-			<NavItem
+		<li class="menu-itemgroup"><NavItem
 				{navItem}
 				on:click={() => {
 					$mobileMenuState = !$mobileMenuState;
 					showHideOverflowY(false);
 				}}
 			/>
+		</li>
 		{/each}
-		<SocialMedia />
-	</div>
+		<div class="mt-4"><SocialMedia /></div>
+		
+	</ul>
 {/if}
 
 <style>
