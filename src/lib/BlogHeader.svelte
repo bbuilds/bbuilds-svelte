@@ -27,7 +27,7 @@
 				{#if postPreview}
 					{tag}{#if index < tags.length - 1},&nbsp;{/if}
 				{:else}
-					<a sveltekit:prefetch rel="external" href={`/tags/${tag}`}>{tag}</a
+					<a href={`/tags/${tag}`}>{tag}</a
 					>{#if index < tags.length - 1},&nbsp;{/if}
 				{/if}
 			{/each}

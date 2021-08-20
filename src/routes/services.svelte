@@ -86,7 +86,7 @@
 		<blockquote class="text-lg md:text-xl md:mb-6 lg:max-w-2/3 leading-snug">
 			"modern problems require modern solutions" <cite class="block text-md">-Dave Chappelle</cite>
 		</blockquote>
-		<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block"
+		<a href="/contact" class="button mt-8 inline-block"
 			>Talk nerdy to me</a
 		>
 	</div>
@@ -108,8 +108,6 @@
 					<div class="py-8">
 						<a
 							href={service.url}
-							sveltekit:prefetch
-							rel="external"
 							class="link-shield"
 						>
 							<h6 class="text-xl font-semibold leading-none mb-4">

@@ -80,8 +80,6 @@
 			{#each socialLinks as link}
 				<li class="mr-2">
 					<a
-						sveltekit:prefetch
-						rel="external"
 						href={link.href}
 						target="_blank"
 						class="block transition duration-300 ease-in-out transform hover:-translate-y-1"

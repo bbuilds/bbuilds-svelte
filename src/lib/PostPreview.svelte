@@ -18,7 +18,7 @@
 		/>
 		<LinkSVG />
 	</div>
-	<a href={`/blog/${post.slug}`} class="link-shield" sveltekit:prefetch rel="external">
+	<a href={`/blog/${post.slug}`} class="link-shield">
 		<BlogHeader rawDate={post.date} title={post.title} tags={post.tags} postPreview={true} />
 	</a>
 	<p>{post.excerpt}</p>

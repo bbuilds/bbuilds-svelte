@@ -37,7 +37,7 @@
 				To excel at search engine optimization, one must understand the technical action needed to
 				improve search results.
 			</p>
-			<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+			<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 		</div>
 		<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 			<BrandCube />

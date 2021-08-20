@@ -42,7 +42,7 @@
 			<p>
 				This seems to be a popular buzz phrase in recent years but for a great meaning, a headless
 				content management system or headless CMS is a way to let the a CMS handle only the data and
-				a modern JS framework, like react, Vue, Svelte, etc handle how to display the data. <a sveltekit:prefetch rel="external"
+				a modern JS framework, like react, Vue, Svelte, etc handle how to display the data. <a
 					href="/blog/byoungz-headlesswp-gatsby">Headless Wordpress</a
 				> is using WordPress to manage the content as the backend.
 			</p>

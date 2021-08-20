@@ -31,7 +31,7 @@
 				Telling a story requires an insightful, handcrafted presence propelled by emotional
 				intelligence.
 			</p>
-			<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+			<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 		</div>
 		<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 			<BrandCube />

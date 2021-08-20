@@ -14,10 +14,10 @@
 			{#each services as service, index}
 				<li class="flex items-center" data-aos="fade-right" data-aos-delay={`${index}00`}>
 					<a
-						sveltekit:prefetch
+						
 						href={service.url}
 						class="p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out transform hover:-translate-y-2 hover:bg-bbuilds-black hover:text-bbuilds-yellow"
-						rel="external"
+						
 					>
 						<h3 class="text-lg font-semibold leading-none">
 							{service.title}

@@ -9,8 +9,7 @@
 <a
 	class:active={$page.path === href}
 	{href}
-	sveltekit:prefetch
-	rel="external"
+
 	on:click
 	class="text-bbuilds-teal hover:text-bbuilds-yellow"
 >
@@ -24,9 +23,9 @@
 			{#each children as item}
 				<li class="menu-item">
 					<a
-						sveltekit:prefetch
+						
 						class:active={$page.path === item.href}
-						rel="external"
+						
 						href={item.href}
 						class="flex text-bbuilds-teal py-2 px-4 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black"
 						>{item.title}</a

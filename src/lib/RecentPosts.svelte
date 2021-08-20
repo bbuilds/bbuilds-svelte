@@ -16,7 +16,7 @@
             {/each}
         </div>
         <div class="text-center pt-10">
-            <a sveltekit:prefetch rel="external" href="/blog" class="button">View Blog</a>
+            <a rel="external" href="/blog" class="button">View Blog</a>
         </div>
     </div>
 </section>

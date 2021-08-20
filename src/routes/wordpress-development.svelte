@@ -32,7 +32,7 @@
 				Using WordPress as a traditional monolithic CMS? I come correct in every aspect of real
 				WordPress development.
 			</p>
-			<a sveltekit:prefetch rel="external" href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
+			<a href="/contact" class="button mt-8 inline-block">Talk nerdy to me</a>
 		</div>
 		<div class="hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4">
 			<BrandCube />
@@ -70,7 +70,7 @@
 				<li>building Block Editor (Gutenberg) blocks</li>						
 				<li>optimization / website Audit.</li>			
 				<li>agency training</li>
-				<li><a sveltekit:prefetch rel="external" href="/headless-wordpress-development">headless WordPress development</a></li>
+				<li><a  href="/headless-wordpress-development">headless WordPress development</a></li>
 			</ul>
 		</div>
 	</section>
