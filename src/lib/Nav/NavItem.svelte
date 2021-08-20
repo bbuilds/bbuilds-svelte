@@ -12,7 +12,7 @@
 	sveltekit:prefetch
 	rel="external"
 	on:click
-	class="text-bbuilds-teal hover:text-bbuilds-yellow mb-4"
+	class="text-bbuilds-teal hover:text-bbuilds-yellow"
 >
 	{title}
 </a>
@@ -28,7 +28,7 @@
 						class:active={$page.path === item.href}
 						rel="external"
 						href={item.href}
-						class="flex text-bbuilds-teal py-2 px-4 mb-0 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black"
+						class="flex text-bbuilds-teal py-2 px-4 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black"
 						>{item.title}</a
 					>
 				</li>
@@ -45,7 +45,6 @@
 	@media (min-width: 768px) {
 		a {
 			@apply text-base;
-			@apply mb-0;
 		}
 		.dropdown-menu {
 			min-width: 22.5rem;

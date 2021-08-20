@@ -27,7 +27,7 @@
 		class="nav-items absolute flex flex-col px-4 pt-8 pb-20 overflow-y-scroll w-screen h-screen space-y-xx-small bg-bbuilds-black z-10 border-t border-bbuilds-yellow"
 		transition:fly="{{duration: 200, y: 20, opacity: 0.5}}">
 		{#each navItems as navItem}
-		<li class="menu-itemgroup"><NavItem
+		<li class="menu-item group mb-4"><NavItem
 				{navItem}
 				on:click={() => {
 					$mobileMenuState = !$mobileMenuState;
