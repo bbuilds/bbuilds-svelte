@@ -1711,17 +1711,6 @@ init_shims();
 
 // node_modules/@sveltejs/kit/dist/ssr.js
 init_shims();
-
-// node_modules/@sveltejs/kit/dist/adapter-utils.js
-init_shims();
-function isContentTypeTextual(content_type) {
-  if (!content_type)
-    return true;
-  const [type] = content_type.split(";");
-  return type === "text/plain" || type === "application/json" || type === "application/x-www-form-urlencoded" || type === "multipart/form-data";
-}
-
-// node_modules/@sveltejs/kit/dist/ssr.js
 function lowercase_keys(obj) {
   const clone2 = {};
   for (const key in obj) {
@@ -1738,6 +1727,12 @@ function error(body) {
 }
 function is_string(s2) {
   return typeof s2 === "string" || s2 instanceof String;
+}
+function is_content_type_textual(content_type) {
+  if (!content_type)
+    return true;
+  const [type] = content_type.split(";");
+  return type === "text/plain" || type === "application/json" || type === "application/x-www-form-urlencoded" || type === "multipart/form-data";
 }
 async function render_endpoint(request, route, match) {
   const mod = await route.load();
@@ -1757,7 +1752,7 @@ async function render_endpoint(request, route, match) {
   let { status = 200, body, headers = {} } = response;
   headers = lowercase_keys(headers);
   const type = headers["content-type"];
-  const is_type_textual = isContentTypeTextual(type);
+  const is_type_textual = is_content_type_textual(type);
   if (!is_type_textual && !(body instanceof Uint8Array || is_string(body))) {
     return error(`${preface}: body must be an instance of string or Uint8Array if content-type is not a supported textual content-type`);
   }
@@ -2339,7 +2334,7 @@ async function load_node({
             method: opts.method || "GET",
             headers,
             path: relative,
-            rawBody: opts.body,
+            rawBody: new TextEncoder().encode(opts.body),
             query: new URLSearchParams(search)
           }, options2, {
             fetched: url,
@@ -2370,7 +2365,7 @@ async function load_node({
             }
           }
           const external_request = new Request(url, opts);
-          response = await options2.hooks.serverFetch.call(null, external_request);
+          response = await options2.hooks.externalFetch.call(null, external_request);
         }
         if (response) {
           const proxy = new Proxy(response, {
@@ -2793,24 +2788,26 @@ var ReadOnlyFormData = class {
   }
 };
 function parse_body(raw, headers) {
-  if (!raw || typeof raw !== "string")
+  if (!raw)
     return raw;
-  const [type, ...directives] = headers["content-type"].split(/;\s*/);
+  const content_type = headers["content-type"];
+  const [type, ...directives] = content_type ? content_type.split(/;\s*/) : [];
+  const text = () => new TextDecoder(headers["content-encoding"] || "utf-8").decode(raw);
   switch (type) {
     case "text/plain":
-      return raw;
+      return text();
     case "application/json":
-      return JSON.parse(raw);
+      return JSON.parse(text());
     case "application/x-www-form-urlencoded":
-      return get_urlencoded(raw);
+      return get_urlencoded(text());
     case "multipart/form-data": {
       const boundary = directives.find((directive) => directive.startsWith("boundary="));
       if (!boundary)
         throw new Error("Missing boundary");
-      return get_multipart(raw, boundary.slice("boundary=".length));
+      return get_multipart(text(), boundary.slice("boundary=".length));
     }
     default:
-      throw new Error(`Invalid Content-Type ${type}`);
+      return raw;
   }
 }
 function get_urlencoded(text) {
@@ -2966,6 +2963,11 @@ function subscribe(store, ...callbacks) {
   const unsub = store.subscribe(...callbacks);
   return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
 }
+function custom_event(type, detail, bubbles = false) {
+  const e = document.createEvent("CustomEvent");
+  e.initCustomEvent(type, bubbles, false, detail);
+  return e;
+}
 var current_component;
 function set_current_component(component) {
   current_component = component;
@@ -2974,6 +2976,18 @@ function get_current_component() {
   if (!current_component)
     throw new Error("Function called outside component initialization");
   return current_component;
+}
+function createEventDispatcher() {
+  const component = get_current_component();
+  return (type, detail) => {
+    const callbacks = component.$$.callbacks[type];
+    if (callbacks) {
+      const event = custom_event(type, detail);
+      callbacks.slice().forEach((fn) => {
+        fn.call(component, event);
+      });
+    }
+  };
 }
 function setContext(key, context) {
   get_current_component().$$.context.set(key, context);
@@ -3052,7 +3066,7 @@ function add_attribute(name, value, boolean) {
 }
 function afterUpdate() {
 }
-var css$f = {
+var css$h = {
   code: "#svelte-announcer.svelte-u7bl1d{position:absolute;left:0;top:0;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;white-space:nowrap;width:1px;height:1px}",
   map: `{"version":3,"file":"root.svelte","sources":["root.svelte"],"sourcesContent":["<!-- This file is generated by @sveltejs/kit \u2014 do not edit it! -->\\n<script>\\n\\timport { setContext, afterUpdate, onMount } from 'svelte';\\n\\n\\t// stores\\n\\texport let stores;\\n\\texport let page;\\n\\n\\texport let components;\\n\\texport let props_0 = null;\\n\\texport let props_1 = null;\\n\\texport let props_2 = null;\\n\\n\\tsetContext('__svelte__', stores);\\n\\n\\t$: stores.page.set(page);\\n\\tafterUpdate(stores.page.notify);\\n\\n\\tlet mounted = false;\\n\\tlet navigated = false;\\n\\tlet title = null;\\n\\n\\tonMount(() => {\\n\\t\\tconst unsubscribe = stores.page.subscribe(() => {\\n\\t\\t\\tif (mounted) {\\n\\t\\t\\t\\tnavigated = true;\\n\\t\\t\\t\\ttitle = document.title || 'untitled page';\\n\\t\\t\\t}\\n\\t\\t});\\n\\n\\t\\tmounted = true;\\n\\t\\treturn unsubscribe;\\n\\t});\\n<\/script>\\n\\n<svelte:component this={components[0]} {...(props_0 || {})}>\\n\\t{#if components[1]}\\n\\t\\t<svelte:component this={components[1]} {...(props_1 || {})}>\\n\\t\\t\\t{#if components[2]}\\n\\t\\t\\t\\t<svelte:component this={components[2]} {...(props_2 || {})}/>\\n\\t\\t\\t{/if}\\n\\t\\t</svelte:component>\\n\\t{/if}\\n</svelte:component>\\n\\n{#if mounted}\\n\\t<div id=\\"svelte-announcer\\" aria-live=\\"assertive\\" aria-atomic=\\"true\\">\\n\\t\\t{#if navigated}\\n\\t\\t\\t{title}\\n\\t\\t{/if}\\n\\t</div>\\n{/if}\\n\\n<style>#svelte-announcer {\\n  position: absolute;\\n  left: 0;\\n  top: 0;\\n  clip: rect(0 0 0 0);\\n  clip-path: inset(50%);\\n  overflow: hidden;\\n  white-space: nowrap;\\n  width: 1px;\\n  height: 1px;\\n}</style>"],"names":[],"mappings":"AAqDO,iBAAiB,cAAC,CAAC,AACxB,QAAQ,CAAE,QAAQ,CAClB,IAAI,CAAE,CAAC,CACP,GAAG,CAAE,CAAC,CACN,IAAI,CAAE,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CACnB,SAAS,CAAE,MAAM,GAAG,CAAC,CACrB,QAAQ,CAAE,MAAM,CAChB,WAAW,CAAE,MAAM,CACnB,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,AACb,CAAC"}`
 };
@@ -3077,7 +3091,7 @@ var Root = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.props_1(props_1);
   if ($$props.props_2 === void 0 && $$bindings.props_2 && props_2 !== void 0)
     $$bindings.props_2(props_2);
-  $$result.css.add(css$f);
+  $$result.css.add(css$h);
   {
     stores.page.set(page2);
   }
@@ -3105,6 +3119,8 @@ var getSession = async () => {
     return brandenBuildsLaunches;
   }), "../src/routes/blog/byoungz-headlesswp-gatsby.md": () => Promise.resolve().then(function() {
     return byoungzHeadlesswpGatsby;
+  }), "../src/routes/blog/interview-with-codehs.md": () => Promise.resolve().then(function() {
+    return interviewWithCodehs;
   }) }).map(async ([path, page2]) => {
     const { metadata: metadata2 } = await page2();
     const filename = path.split("/").pop();
@@ -3121,7 +3137,18 @@ var user_hooks = /* @__PURE__ */ Object.freeze({
   getSession
 });
 var template = ({ head, body }) => '<!DOCTYPE html>\n<html lang="en">\n	<head>\n		<meta charset="utf-8" />\n		<link rel="icon" href="/favicon.png" />\n		<meta name="viewport" content="width=device-width, initial-scale=1" />\n		' + head + `
-		<link rel="stylesheet" href="https://use.typekit.net/fqs8gqy.css" />
+		<link rel="preconnect" href="https://use.typekit.net" crossorigin />
+		<link
+			rel="preload"
+			as="style"
+			href="https://use.typekit.net/fqs8gqy.css"
+		/>
+		<link rel="stylesheet" href="https://use.typekit.net/fqs8gqy.css"  media="print" onload="this.media='all'" />
+
+		<noscript>
+			<link rel="stylesheet"
+				  href="https://use.typekit.net/fqs8gqy.css" />
+		  </noscript>
 		<!-- Google Tag Manager -->
 		<script>
 			(function (w, d, s, l, i) {
@@ -3148,7 +3175,8 @@ var template = ({ head, body }) => '<!DOCTYPE html>\n<html lang="en">\n	<head>\n
 			></iframe
 		></noscript>
 		<!-- End Google Tag Manager (noscript) -->
-		<div id="svelte"><div class="flex flex-wrap flex-col min-h-screen">` + body + "</div></div>\n	</body>\n</html>\n";
+		<div id="bbuilds-app">
+			<div class="flex flex-wrap flex-col min-h-screen">` + body + "</div>\n		</div>\n	</body>\n</html>\n";
 var options = null;
 var default_settings = { paths: { "base": "", "assets": "" } };
 function init(settings = default_settings) {
@@ -3159,9 +3187,9 @@ function init(settings = default_settings) {
     amp: false,
     dev: false,
     entry: {
-      file: assets + "/_app/start-0ff456c3.js",
-      css: [assets + "/_app/assets/start-808c0b29.css"],
-      js: [assets + "/_app/start-0ff456c3.js", assets + "/_app/chunks/vendor-a8cf5fa8.js"]
+      file: assets + "/_app/start-c8cbc5d9.js",
+      css: [assets + "/_app/assets/start-808c0b29.css", assets + "/_app/assets/vendor-e349d78d.css"],
+      js: [assets + "/_app/start-c8cbc5d9.js", assets + "/_app/chunks/vendor-098ae82a.js"]
     },
     fetched: void 0,
     floc: false,
@@ -3183,7 +3211,7 @@ function init(settings = default_settings) {
     service_worker: null,
     router: true,
     ssr: true,
-    target: "#svelte",
+    target: "#bbuilds-app",
     template,
     trailing_slash: "never"
   };
@@ -3191,7 +3219,7 @@ function init(settings = default_settings) {
 var d = decodeURIComponent;
 var empty = () => ({});
 var manifest = {
-  assets: [{ "file": ".DS_Store", "size": 6148, "type": null }, { "file": "favicon.png", "size": 1571, "type": "image/png" }, { "file": "images/.DS_Store", "size": 6148, "type": null }, { "file": "images/blog/.DS_Store", "size": 6148, "type": null }, { "file": "images/blog/branden-builds-launches/branden-builds-website-blog.png", "size": 10752, "type": "image/png" }, { "file": "images/blog/byoungz-gatsby-build.jpg", "size": 91834, "type": "image/jpeg" }, { "file": "images/blog/byoungz-headlesswp-gatsby/byoungz-website-gatsby-headlesswp.jpg", "size": 114092, "type": "image/jpeg" }, { "file": "images/blog/traditional-wordpress-byoungz-ss.jpg", "size": 92488, "type": "image/jpeg" }, { "file": "images/brandenbuilds-opengraph.jpg", "size": 97042, "type": "image/jpeg" }, { "file": "images/branding-service-illustration.svg", "size": 5449, "type": "image/svg+xml" }, { "file": "images/seo-service-illustration.svg", "size": 5980, "type": "image/svg+xml" }, { "file": "images/web-development-illustration.svg", "size": 9772, "type": "image/svg+xml" }, { "file": "images/wordpress-development-illustration.svg", "size": 5744, "type": "image/svg+xml" }, { "file": "svg/.DS_Store", "size": 6148, "type": null }, { "file": "svg/logos/.DS_Store", "size": 8196, "type": null }, { "file": "svg/logos/apollo.svg", "size": 1187, "type": "image/svg+xml" }, { "file": "svg/logos/css.svg", "size": 950, "type": "image/svg+xml" }, { "file": "svg/logos/docker.svg", "size": 4910, "type": "image/svg+xml" }, { "file": "svg/logos/facebook.svg", "size": 433, "type": "image/svg+xml" }, { "file": "svg/logos/gatsby.svg", "size": 685, "type": "image/svg+xml" }, { "file": "svg/logos/graphql.svg", "size": 2807, "type": "image/svg+xml" }, { "file": "svg/logos/html.svg", "size": 855, "type": "image/svg+xml" }, { "file": "svg/logos/javascript.svg", "size": 1088, "type": "image/svg+xml" }, { "file": "svg/logos/laravel.svg", "size": 2034, "type": "image/svg+xml" }, { "file": "svg/logos/link.svg", "size": 1475, "type": "image/svg+xml" }, { "file": "svg/logos/linkedin.svg", "size": 599, "type": "image/svg+xml" }, { "file": "svg/logos/mongodb.svg", "size": 26490, "type": "image/svg+xml" }, { "file": "svg/logos/mysql.svg", "size": 2706, "type": "image/svg+xml" }, { "file": "svg/logos/nextjs.svg", "size": 542, "type": "image/svg+xml" }, { "file": "svg/logos/nodejs.svg", "size": 2208, "type": "image/svg+xml" }, { "file": "svg/logos/php.svg", "size": 10316, "type": "image/svg+xml" }, { "file": "svg/logos/postgres.svg", "size": 9089, "type": "image/svg+xml" }, { "file": "svg/logos/react.svg", "size": 5219, "type": "image/svg+xml" }, { "file": "svg/logos/reddit.svg", "size": 1130, "type": "image/svg+xml" }, { "file": "svg/logos/sass.svg", "size": 5823, "type": "image/svg+xml" }, { "file": "svg/logos/svelte.svg", "size": 3420, "type": "image/svg+xml" }, { "file": "svg/logos/tailwind.svg", "size": 1002, "type": "image/svg+xml" }, { "file": "svg/logos/twitter.svg", "size": 765, "type": "image/svg+xml" }, { "file": "svg/logos/typescript.svg", "size": 2324, "type": "image/svg+xml" }, { "file": "svg/logos/vuejs.svg", "size": 450, "type": "image/svg+xml" }, { "file": "svg/logos/wordpress.svg", "size": 1673, "type": "image/svg+xml" }],
+  assets: [{ "file": ".DS_Store", "size": 6148, "type": null }, { "file": "favicon.png", "size": 1140, "type": "image/png" }, { "file": "g/images/blog/interview-with-codehs/branden-builds-interview-codehs-1200.png", "size": 233976, "type": "image/png" }, { "file": "g/images/blog/interview-with-codehs/branden-builds-interview-codehs-1200.webp", "size": 21446, "type": "image/webp" }, { "file": "g/images/blog/interview-with-codehs/branden-builds-interview-codehs-400.png", "size": 45452, "type": "image/png" }, { "file": "g/images/blog/interview-with-codehs/branden-builds-interview-codehs-400.webp", "size": 5748, "type": "image/webp" }, { "file": "g/images/blog/interview-with-codehs/branden-builds-interview-codehs-800.png", "size": 135218, "type": "image/png" }, { "file": "g/images/blog/interview-with-codehs/branden-builds-interview-codehs-800.webp", "size": 13560, "type": "image/webp" }, { "file": "g/images/branden-builds-interview-codehs-1200.png", "size": 233976, "type": "image/png" }, { "file": "g/images/branden-builds-interview-codehs-1200.webp", "size": 21446, "type": "image/webp" }, { "file": "g/images/branden-builds-interview-codehs-400.png", "size": 45452, "type": "image/png" }, { "file": "g/images/branden-builds-interview-codehs-400.webp", "size": 5748, "type": "image/webp" }, { "file": "g/images/branden-builds-interview-codehs-800.png", "size": 135218, "type": "image/png" }, { "file": "g/images/branden-builds-interview-codehs-800.webp", "size": 13560, "type": "image/webp" }, { "file": "g/images/brandenbuilds-opengraph-1200.jpg", "size": 24771, "type": "image/jpeg" }, { "file": "g/images/brandenbuilds-opengraph-1200.webp", "size": 8812, "type": "image/webp" }, { "file": "g/images/brandenbuilds-opengraph-400.jpg", "size": 6668, "type": "image/jpeg" }, { "file": "g/images/brandenbuilds-opengraph-400.webp", "size": 3890, "type": "image/webp" }, { "file": "g/images/brandenbuilds-opengraph-800.jpg", "size": 15718, "type": "image/jpeg" }, { "file": "g/images/brandenbuilds-opengraph-800.webp", "size": 6320, "type": "image/webp" }, { "file": "images/.DS_Store", "size": 6148, "type": null }, { "file": "images/blog/.DS_Store", "size": 8196, "type": null }, { "file": "images/blog/branden-builds-launches/branden-builds-website-blog.png", "size": 10752, "type": "image/png" }, { "file": "images/blog/byoungz-gatsby-build.jpg", "size": 91834, "type": "image/jpeg" }, { "file": "images/blog/byoungz-headlesswp-gatsby/byoungz-website-gatsby-headlesswp.jpg", "size": 114092, "type": "image/jpeg" }, { "file": "images/blog/interview-with-codehs/branden-builds-interview-codehs.png", "size": 229683, "type": "image/png" }, { "file": "images/blog/interview-with-codehs/branden-builds-interview-codehs@2x.png", "size": 331297, "type": "image/png" }, { "file": "images/blog/traditional-wordpress-byoungz-ss.jpg", "size": 92488, "type": "image/jpeg" }, { "file": "images/brandenbuilds-opengraph.jpg", "size": 97042, "type": "image/jpeg" }, { "file": "images/branding-service-illustration.svg", "size": 5449, "type": "image/svg+xml" }, { "file": "images/seo-service-illustration.svg", "size": 5980, "type": "image/svg+xml" }, { "file": "images/web-development-illustration.svg", "size": 9772, "type": "image/svg+xml" }, { "file": "images/wordpress-development-illustration.svg", "size": 5744, "type": "image/svg+xml" }, { "file": "robots.txt", "size": 23, "type": "text/plain" }, { "file": "svg/.DS_Store", "size": 6148, "type": null }, { "file": "svg/logos/.DS_Store", "size": 8196, "type": null }, { "file": "svg/logos/apollo.svg", "size": 1187, "type": "image/svg+xml" }, { "file": "svg/logos/css.svg", "size": 950, "type": "image/svg+xml" }, { "file": "svg/logos/docker.svg", "size": 4910, "type": "image/svg+xml" }, { "file": "svg/logos/facebook.svg", "size": 433, "type": "image/svg+xml" }, { "file": "svg/logos/gatsby.svg", "size": 685, "type": "image/svg+xml" }, { "file": "svg/logos/graphql.svg", "size": 2807, "type": "image/svg+xml" }, { "file": "svg/logos/html.svg", "size": 855, "type": "image/svg+xml" }, { "file": "svg/logos/javascript.svg", "size": 1088, "type": "image/svg+xml" }, { "file": "svg/logos/laravel.svg", "size": 2034, "type": "image/svg+xml" }, { "file": "svg/logos/link.svg", "size": 1475, "type": "image/svg+xml" }, { "file": "svg/logos/linkedin.svg", "size": 599, "type": "image/svg+xml" }, { "file": "svg/logos/mongodb.svg", "size": 26490, "type": "image/svg+xml" }, { "file": "svg/logos/mysql.svg", "size": 2706, "type": "image/svg+xml" }, { "file": "svg/logos/nextjs.svg", "size": 542, "type": "image/svg+xml" }, { "file": "svg/logos/nodejs.svg", "size": 2208, "type": "image/svg+xml" }, { "file": "svg/logos/php.svg", "size": 10316, "type": "image/svg+xml" }, { "file": "svg/logos/postgres.svg", "size": 9089, "type": "image/svg+xml" }, { "file": "svg/logos/react.svg", "size": 5219, "type": "image/svg+xml" }, { "file": "svg/logos/reddit.svg", "size": 1130, "type": "image/svg+xml" }, { "file": "svg/logos/sass.svg", "size": 5823, "type": "image/svg+xml" }, { "file": "svg/logos/svelte.svg", "size": 3420, "type": "image/svg+xml" }, { "file": "svg/logos/tailwind.svg", "size": 1002, "type": "image/svg+xml" }, { "file": "svg/logos/twitter.svg", "size": 765, "type": "image/svg+xml" }, { "file": "svg/logos/typescript.svg", "size": 2324, "type": "image/svg+xml" }, { "file": "svg/logos/vuejs.svg", "size": 450, "type": "image/svg+xml" }, { "file": "svg/logos/wordpress.svg", "size": 1673, "type": "image/svg+xml" }],
   layout: "src/routes/__layout.svelte",
   error: "src/routes/__error.svelte",
   routes: [
@@ -3275,6 +3303,13 @@ var manifest = {
     },
     {
       type: "page",
+      pattern: /^\/blog\/interview-with-codehs\/?$/,
+      params: empty,
+      a: ["src/routes/__layout.svelte", "src/routes/blog/interview-with-codehs.md"],
+      b: ["src/routes/__error.svelte"]
+    },
+    {
+      type: "page",
       pattern: /^\/tags\/([^/]+?)\/?$/,
       params: (m) => ({ tag: d(m[1]) }),
       a: ["src/routes/__layout.svelte", "src/routes/tags/[tag].svelte"],
@@ -3305,14 +3340,6 @@ var manifest = {
       })
     },
     {
-      type: "endpoint",
-      pattern: /^\/api\/hero\/?$/,
-      params: empty,
-      load: () => Promise.resolve().then(function() {
-        return hero;
-      })
-    },
-    {
       type: "page",
       pattern: /^\/seo\/?$/,
       params: empty,
@@ -3325,7 +3352,7 @@ var get_hooks = (hooks) => ({
   getSession: hooks.getSession || (() => ({})),
   handle: hooks.handle || (({ request, resolve: resolve2 }) => resolve2(request)),
   handleError: hooks.handleError || (({ error: error22 }) => console.error(error22.stack)),
-  serverFetch: hooks.serverFetch || fetch
+  externalFetch: hooks.externalFetch || fetch
 });
 var module_lookup = {
   "src/routes/__layout.svelte": () => Promise.resolve().then(function() {
@@ -3364,6 +3391,9 @@ var module_lookup = {
   "src/routes/blog/branden-builds-launches.md": () => Promise.resolve().then(function() {
     return brandenBuildsLaunches;
   }),
+  "src/routes/blog/interview-with-codehs.md": () => Promise.resolve().then(function() {
+    return interviewWithCodehs;
+  }),
   "src/routes/tags/[tag].svelte": () => Promise.resolve().then(function() {
     return _tag_;
   }),
@@ -3371,7 +3401,7 @@ var module_lookup = {
     return seo;
   })
 };
-var metadata_lookup = { "src/routes/__layout.svelte": { "entry": "pages/__layout.svelte-fea5b4f0.js", "css": ["assets/pages/__layout.svelte-fe3d0f33.css"], "js": ["pages/__layout.svelte-fea5b4f0.js", "chunks/vendor-a8cf5fa8.js", "chunks/stores-8722c1cd.js", "chunks/Name-077201de.js"], "styles": [] }, "src/routes/__error.svelte": { "entry": "pages/__error.svelte-8d1f9eb4.js", "css": ["assets/pages/__error.svelte-912ecf6d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/__error.svelte-8d1f9eb4.js", "chunks/vendor-a8cf5fa8.js", "chunks/stores-8722c1cd.js", "chunks/OpenGraph-9462adc1.js", "chunks/brandcube-93b22784.js"], "styles": [] }, "src/routes/index.svelte": { "entry": "pages/index.svelte-5cf8d4da.js", "css": ["assets/pages/index.svelte-59b2d07c.css", "assets/Process-954df49e.css", "assets/PostPreview-bbd75563.css"], "js": ["pages/index.svelte-5cf8d4da.js", "chunks/vendor-a8cf5fa8.js", "chunks/Name-077201de.js", "chunks/Process-5badc0f3.js", "chunks/stores-8722c1cd.js", "chunks/PostPreview-83685944.js", "chunks/BlogHeader-c0d0fb75.js", "chunks/OpenGraph-9462adc1.js"], "styles": [] }, "src/routes/headless-wordpress-development.svelte": { "entry": "pages/headless-wordpress-development.svelte-5ed4035a.js", "css": ["assets/pages/headless-wordpress-development.svelte-b00cd87a.css", "assets/content-styles-f16ae040.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/headless-wordpress-development.svelte-5ed4035a.js", "chunks/vendor-a8cf5fa8.js", "chunks/OpenGraph-9462adc1.js", "chunks/stores-8722c1cd.js", "chunks/brandcube-93b22784.js"], "styles": [] }, "src/routes/wordpress-development.svelte": { "entry": "pages/wordpress-development.svelte-1615f9da.js", "css": ["assets/content-styles-f16ae040.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/wordpress-development.svelte-1615f9da.js", "chunks/vendor-a8cf5fa8.js", "chunks/OpenGraph-9462adc1.js", "chunks/stores-8722c1cd.js", "chunks/brandcube-93b22784.js"], "styles": [] }, "src/routes/web-development.svelte": { "entry": "pages/web-development.svelte-3350bb93.js", "css": ["assets/content-styles-f16ae040.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/web-development.svelte-3350bb93.js", "chunks/vendor-a8cf5fa8.js", "chunks/OpenGraph-9462adc1.js", "chunks/stores-8722c1cd.js", "chunks/brandcube-93b22784.js"], "styles": [] }, "src/routes/branding.svelte": { "entry": "pages/branding.svelte-5eb01320.js", "css": ["assets/content-styles-f16ae040.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/branding.svelte-5eb01320.js", "chunks/vendor-a8cf5fa8.js", "chunks/OpenGraph-9462adc1.js", "chunks/stores-8722c1cd.js", "chunks/brandcube-93b22784.js"], "styles": [] }, "src/routes/services.svelte": { "entry": "pages/services.svelte-e940e328.js", "css": ["assets/pages/services.svelte-10eb9642.css", "assets/Process-954df49e.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/services.svelte-e940e328.js", "chunks/vendor-a8cf5fa8.js", "chunks/Process-5badc0f3.js", "chunks/brandcube-93b22784.js", "chunks/OpenGraph-9462adc1.js", "chunks/stores-8722c1cd.js"], "styles": [] }, "src/routes/contact.svelte": { "entry": "pages/contact.svelte-16ef9dc4.js", "css": ["assets/brandcube-9e7a7b79.css"], "js": ["pages/contact.svelte-16ef9dc4.js", "chunks/vendor-a8cf5fa8.js", "chunks/stores-8722c1cd.js", "chunks/OpenGraph-9462adc1.js", "chunks/brandcube-93b22784.js"], "styles": [] }, "src/routes/blog/index.svelte": { "entry": "pages/blog/index.svelte-72cfe273.js", "css": ["assets/pages/blog/index.svelte-dfecea9c.css", "assets/PostPreview-bbd75563.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/blog/index.svelte-72cfe273.js", "chunks/vendor-a8cf5fa8.js", "chunks/stores-8722c1cd.js", "chunks/PostPreview-83685944.js", "chunks/BlogHeader-c0d0fb75.js", "chunks/OpenGraph-9462adc1.js", "chunks/brandcube-93b22784.js"], "styles": [] }, "src/routes/blog/byoungz-headlesswp-gatsby.md": { "entry": "pages/blog/byoungz-headlesswp-gatsby.md-be580a50.js", "css": ["assets/FeaturedImage-5643b9ee.css"], "js": ["pages/blog/byoungz-headlesswp-gatsby.md-be580a50.js", "chunks/vendor-a8cf5fa8.js", "chunks/FeaturedImage-3fbb0882.js", "chunks/stores-8722c1cd.js", "chunks/OpenGraph-9462adc1.js", "chunks/BlogHeader-c0d0fb75.js"], "styles": [] }, "src/routes/blog/branden-builds-launches.md": { "entry": "pages/blog/branden-builds-launches.md-43a14801.js", "css": ["assets/FeaturedImage-5643b9ee.css"], "js": ["pages/blog/branden-builds-launches.md-43a14801.js", "chunks/vendor-a8cf5fa8.js", "chunks/FeaturedImage-3fbb0882.js", "chunks/stores-8722c1cd.js", "chunks/OpenGraph-9462adc1.js", "chunks/BlogHeader-c0d0fb75.js"], "styles": [] }, "src/routes/tags/[tag].svelte": { "entry": "pages/tags/[tag].svelte-cbb78fe6.js", "css": ["assets/pages/tags/[tag].svelte-cefe92c0.css", "assets/brandcube-9e7a7b79.css", "assets/PostPreview-bbd75563.css"], "js": ["pages/tags/[tag].svelte-cbb78fe6.js", "chunks/vendor-a8cf5fa8.js", "chunks/stores-8722c1cd.js", "chunks/OpenGraph-9462adc1.js", "chunks/brandcube-93b22784.js", "chunks/PostPreview-83685944.js", "chunks/BlogHeader-c0d0fb75.js"], "styles": [] }, "src/routes/seo.svelte": { "entry": "pages/seo.svelte-8688d83f.js", "css": ["assets/content-styles-f16ae040.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/seo.svelte-8688d83f.js", "chunks/vendor-a8cf5fa8.js", "chunks/OpenGraph-9462adc1.js", "chunks/stores-8722c1cd.js", "chunks/brandcube-93b22784.js"], "styles": [] } };
+var metadata_lookup = { "src/routes/__layout.svelte": { "entry": "pages/__layout.svelte-31d1585d.js", "css": ["assets/pages/__layout.svelte-de3c4806.css", "assets/vendor-e349d78d.css"], "js": ["pages/__layout.svelte-31d1585d.js", "chunks/vendor-098ae82a.js", "chunks/stores-334667c6.js", "chunks/Name-274eab76.js"], "styles": [] }, "src/routes/__error.svelte": { "entry": "pages/__error.svelte-d264344a.js", "css": ["assets/pages/__error.svelte-912ecf6d.css", "assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/__error.svelte-d264344a.js", "chunks/vendor-098ae82a.js", "chunks/stores-334667c6.js", "chunks/brandcube-4296c95a.js", "chunks/MetaTags-214a6dad.js"], "styles": [] }, "src/routes/index.svelte": { "entry": "pages/index.svelte-c9f98202.js", "css": ["assets/pages/index.svelte-9cae71b6.css", "assets/vendor-e349d78d.css", "assets/Process-954df49e.css", "assets/PostPreview-64868e7c.css"], "js": ["pages/index.svelte-c9f98202.js", "chunks/vendor-098ae82a.js", "chunks/Name-274eab76.js", "chunks/Process-b7b65ca3.js", "chunks/stores-334667c6.js", "chunks/PostPreview-0e791bd8.js", "chunks/BlogHeader-85480727.js", "chunks/MetaTags-214a6dad.js"], "styles": [] }, "src/routes/headless-wordpress-development.svelte": { "entry": "pages/headless-wordpress-development.svelte-e253242f.js", "css": ["assets/pages/headless-wordpress-development.svelte-b00cd87a.css", "assets/content-styles-f16ae040.css", "assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/headless-wordpress-development.svelte-e253242f.js", "chunks/vendor-098ae82a.js", "chunks/MetaTags-214a6dad.js", "chunks/stores-334667c6.js", "chunks/brandcube-4296c95a.js"], "styles": [] }, "src/routes/wordpress-development.svelte": { "entry": "pages/wordpress-development.svelte-e2f2db06.js", "css": ["assets/content-styles-f16ae040.css", "assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/wordpress-development.svelte-e2f2db06.js", "chunks/vendor-098ae82a.js", "chunks/MetaTags-214a6dad.js", "chunks/stores-334667c6.js", "chunks/brandcube-4296c95a.js"], "styles": [] }, "src/routes/web-development.svelte": { "entry": "pages/web-development.svelte-08bef114.js", "css": ["assets/content-styles-f16ae040.css", "assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/web-development.svelte-08bef114.js", "chunks/vendor-098ae82a.js", "chunks/MetaTags-214a6dad.js", "chunks/stores-334667c6.js", "chunks/brandcube-4296c95a.js"], "styles": [] }, "src/routes/branding.svelte": { "entry": "pages/branding.svelte-336af2b1.js", "css": ["assets/content-styles-f16ae040.css", "assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/branding.svelte-336af2b1.js", "chunks/vendor-098ae82a.js", "chunks/MetaTags-214a6dad.js", "chunks/stores-334667c6.js", "chunks/brandcube-4296c95a.js"], "styles": [] }, "src/routes/services.svelte": { "entry": "pages/services.svelte-07e6fc1c.js", "css": ["assets/pages/services.svelte-10eb9642.css", "assets/vendor-e349d78d.css", "assets/Process-954df49e.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/services.svelte-07e6fc1c.js", "chunks/vendor-098ae82a.js", "chunks/MetaTags-214a6dad.js", "chunks/stores-334667c6.js", "chunks/Process-b7b65ca3.js", "chunks/brandcube-4296c95a.js"], "styles": [] }, "src/routes/contact.svelte": { "entry": "pages/contact.svelte-60eb6f28.js", "css": ["assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/contact.svelte-60eb6f28.js", "chunks/vendor-098ae82a.js", "chunks/MetaTags-214a6dad.js", "chunks/stores-334667c6.js", "chunks/brandcube-4296c95a.js"], "styles": [] }, "src/routes/blog/index.svelte": { "entry": "pages/blog/index.svelte-dc5ad36a.js", "css": ["assets/pages/blog/index.svelte-dfecea9c.css", "assets/vendor-e349d78d.css", "assets/PostPreview-64868e7c.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/blog/index.svelte-dc5ad36a.js", "chunks/vendor-098ae82a.js", "chunks/stores-334667c6.js", "chunks/MetaTags-214a6dad.js", "chunks/PostPreview-0e791bd8.js", "chunks/BlogHeader-85480727.js", "chunks/brandcube-4296c95a.js"], "styles": [] }, "src/routes/blog/byoungz-headlesswp-gatsby.md": { "entry": "pages/blog/byoungz-headlesswp-gatsby.md-7bbcd770.js", "css": ["assets/vendor-e349d78d.css", "assets/FeaturedImage-82c74cb6.css"], "js": ["pages/blog/byoungz-headlesswp-gatsby.md-7bbcd770.js", "chunks/vendor-098ae82a.js", "chunks/FeaturedImage-e1b23fbe.js", "chunks/stores-334667c6.js", "chunks/MetaTags-214a6dad.js", "chunks/BlogHeader-85480727.js"], "styles": [] }, "src/routes/blog/branden-builds-launches.md": { "entry": "pages/blog/branden-builds-launches.md-1f424cd6.js", "css": ["assets/vendor-e349d78d.css", "assets/FeaturedImage-82c74cb6.css"], "js": ["pages/blog/branden-builds-launches.md-1f424cd6.js", "chunks/vendor-098ae82a.js", "chunks/FeaturedImage-e1b23fbe.js", "chunks/stores-334667c6.js", "chunks/MetaTags-214a6dad.js", "chunks/BlogHeader-85480727.js"], "styles": [] }, "src/routes/blog/interview-with-codehs.md": { "entry": "pages/blog/interview-with-codehs.md-eb53a026.js", "css": ["assets/vendor-e349d78d.css", "assets/FeaturedImage-82c74cb6.css"], "js": ["pages/blog/interview-with-codehs.md-eb53a026.js", "chunks/vendor-098ae82a.js", "chunks/FeaturedImage-e1b23fbe.js", "chunks/stores-334667c6.js", "chunks/MetaTags-214a6dad.js", "chunks/BlogHeader-85480727.js"], "styles": [] }, "src/routes/tags/[tag].svelte": { "entry": "pages/tags/[tag].svelte-0d96e187.js", "css": ["assets/pages/tags/[tag].svelte-cefe92c0.css", "assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css", "assets/PostPreview-64868e7c.css"], "js": ["pages/tags/[tag].svelte-0d96e187.js", "chunks/vendor-098ae82a.js", "chunks/stores-334667c6.js", "chunks/MetaTags-214a6dad.js", "chunks/brandcube-4296c95a.js", "chunks/PostPreview-0e791bd8.js", "chunks/BlogHeader-85480727.js"], "styles": [] }, "src/routes/seo.svelte": { "entry": "pages/seo.svelte-077a871c.js", "css": ["assets/content-styles-f16ae040.css", "assets/vendor-e349d78d.css", "assets/brandcube-9e7a7b79.css"], "js": ["pages/seo.svelte-077a871c.js", "chunks/vendor-098ae82a.js", "chunks/MetaTags-214a6dad.js", "chunks/stores-334667c6.js", "chunks/brandcube-4296c95a.js"], "styles": [] } };
 async function load_component(file) {
   const { entry, css: css2, js, styles } = metadata_lookup[file];
   return {
@@ -3423,36 +3453,56 @@ var session = {
   set: () => error2("set"),
   update: () => error2("update")
 };
-var OpenGraph = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+var MetaTags = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $page, $$unsubscribe_page;
   $$unsubscribe_page = subscribe(page, (value) => $page = value);
-  let { title: title2 } = $$props;
-  let { description } = $$props;
-  let { norobots = false } = $$props;
-  let { image: image2 } = $$props;
-  let { type = "article" } = $$props;
+  let { title: title2 = void 0 } = $$props;
+  let { noindex = false } = $$props;
+  let { nofollow = false } = $$props;
+  let { robotsProps = void 0 } = $$props;
+  let { description = void 0 } = $$props;
+  let { keywords: keywords2 = void 0 } = $$props;
+  let { canonical = void 0 } = $$props;
   let { url = `https://${$page.host}${$page.path}` } = $$props;
-  let { keywords: keywords2 } = $$props;
+  let { image: image2 = `https://${$page.host}/images/brandenbuilds-opengraph.jpg` } = $$props;
+  let { type = "article" } = $$props;
+  let { jsonLd = void 0 } = $$props;
+  let robotsParams = "";
+  if (robotsProps) {
+    const { nosnippet, maxSnippet, maxImagePreview, maxVideoPreview, noarchive, noimageindex, notranslate, unavailableAfter } = robotsProps;
+    robotsParams = `${nosnippet ? ",nosnippet" : ""}${maxSnippet ? `,max-snippet:${maxSnippet}` : ""}${maxImagePreview ? `,max-image-preview:${maxImagePreview}` : ""}${noarchive ? ",noarchive" : ""}${unavailableAfter ? `,unavailable_after:${unavailableAfter}` : ""}${noimageindex ? ",noimageindex" : ""}${maxVideoPreview ? `,max-video-preview:${maxVideoPreview}` : ""}${notranslate ? ",notranslate" : ""}`;
+  }
   if ($$props.title === void 0 && $$bindings.title && title2 !== void 0)
     $$bindings.title(title2);
+  if ($$props.noindex === void 0 && $$bindings.noindex && noindex !== void 0)
+    $$bindings.noindex(noindex);
+  if ($$props.nofollow === void 0 && $$bindings.nofollow && nofollow !== void 0)
+    $$bindings.nofollow(nofollow);
+  if ($$props.robotsProps === void 0 && $$bindings.robotsProps && robotsProps !== void 0)
+    $$bindings.robotsProps(robotsProps);
   if ($$props.description === void 0 && $$bindings.description && description !== void 0)
     $$bindings.description(description);
-  if ($$props.norobots === void 0 && $$bindings.norobots && norobots !== void 0)
-    $$bindings.norobots(norobots);
+  if ($$props.keywords === void 0 && $$bindings.keywords && keywords2 !== void 0)
+    $$bindings.keywords(keywords2);
+  if ($$props.canonical === void 0 && $$bindings.canonical && canonical !== void 0)
+    $$bindings.canonical(canonical);
+  if ($$props.url === void 0 && $$bindings.url && url !== void 0)
+    $$bindings.url(url);
   if ($$props.image === void 0 && $$bindings.image && image2 !== void 0)
     $$bindings.image(image2);
   if ($$props.type === void 0 && $$bindings.type && type !== void 0)
     $$bindings.type(type);
-  if ($$props.url === void 0 && $$bindings.url && url !== void 0)
-    $$bindings.url(url);
-  if ($$props.keywords === void 0 && $$bindings.keywords && keywords2 !== void 0)
-    $$bindings.keywords(keywords2);
+  if ($$props.jsonLd === void 0 && $$bindings.jsonLd && jsonLd !== void 0)
+    $$bindings.jsonLd(jsonLd);
   $$unsubscribe_page();
-  return `${$$result.head += `${$$result.title = `<title>${escape2(title2)}</title>`, ""}<meta name="${"keywords"}"${add_attribute("content", keywords2, 0)} data-svelte="svelte-6njyum"><meta name="${"description"}"${add_attribute("content", description, 0)} data-svelte="svelte-6njyum">${norobots ? `<meta name="${"robots"}" content="${"noindex"}" data-svelte="svelte-6njyum">` : ``}<meta property="${"og:image"}"${add_attribute("content", `${$page.host}/${image2}`, 0)} data-svelte="svelte-6njyum"><meta property="${"og:description"}"${add_attribute("content", description, 0)} data-svelte="svelte-6njyum"><meta property="${"og:title"}"${add_attribute("content", title2, 0)} data-svelte="svelte-6njyum"><meta property="${"og:type"}"${add_attribute("content", type, 0)} data-svelte="svelte-6njyum"><meta property="${"og:url"}"${add_attribute("content", url, 0)} data-svelte="svelte-6njyum"><meta name="${"twitter:card"}" content="${"summary"}" data-svelte="svelte-6njyum"><meta name="${"twitter:site"}" content="${"@brandenbuilds"}" data-svelte="svelte-6njyum"><meta name="${"twitter:creator"}" content="${"@brandenbuilds"}" data-svelte="svelte-6njyum"><meta name="${"twitter:image"}"${add_attribute("content", `${$page.host}/${image2}`, 0)} data-svelte="svelte-6njyum">`, ""}`;
+  return `${$$result.head += `${title2 ? `${$$result.title = `<title>${escape2(title2)}</title>`, ""}` : ``}<meta name="${"robots"}"${add_attribute("content", `${noindex ? "noindex" : "index"},${nofollow ? "nofollow" : "follow"}${robotsParams}`, 0)} data-svelte="svelte-11akztw"><meta name="${"googlebot"}"${add_attribute("content", `${noindex ? "noindex" : "index"},${nofollow ? "nofollow" : "follow"}${robotsParams}`, 0)} data-svelte="svelte-11akztw">${description ? `<meta name="${"description"}"${add_attribute("content", description, 0)} data-svelte="svelte-11akztw">` : ``}${keywords2 ? `<meta name="${"keywords"}"${add_attribute("content", keywords2, 0)} data-svelte="svelte-11akztw">` : ``}${canonical ? `<link rel="${"canonical"}"${add_attribute("href", canonical, 0)} data-svelte="svelte-11akztw">` : ``}<meta property="${"og:image"}"${add_attribute("content", `${image2}`, 0)} data-svelte="svelte-11akztw"><meta property="${"og:description"}"${add_attribute("content", description, 0)} data-svelte="svelte-11akztw"><meta property="${"og:title"}"${add_attribute("content", title2, 0)} data-svelte="svelte-11akztw"><meta property="${"og:type"}"${add_attribute("content", type, 0)} data-svelte="svelte-11akztw"><meta property="${"og:url"}"${add_attribute("content", url, 0)} data-svelte="svelte-11akztw"><meta name="${"twitter:card"}" content="${"summary"}" data-svelte="svelte-11akztw"><meta name="${"twitter:site"}" content="${"@brandenbuilds"}" data-svelte="svelte-11akztw"><meta name="${"twitter:creator"}" content="${"@brandenbuilds"}" data-svelte="svelte-11akztw"><meta name="${"twitter:image"}"${add_attribute("content", `${$page.host}/${image2}`, 0)} data-svelte="svelte-11akztw">${jsonLd ? `<!-- HTML_TAG_START -->${`<script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    ...jsonLd
+  }) + "<"}/script>`}<!-- HTML_TAG_END -->` : ``}`, ""}`;
 });
-var css$e = {
-  code: "body{line-height:1.5}.blog-post ul{padding-inline-start:1.7em;list-style:disc}.blog-post ul > li{padding-left:0.1em}.blog-post p{margin-top:0.5em;margin-bottom:0.5em}.post-img{margin-top:1rem;margin-bottom:1rem}h1,h2,h3,h4,h5,h6{line-height:1.25;margin-top:1.25rem;margin-bottom:1rem}h2{margin-top:2rem}",
-  map: '{"version":3,"file":"blog.svelte","sources":["blog.svelte"],"sourcesContent":["<script>\\n\\timport { page } from \'$app/stores\';\\n\\timport OpenGraph from \'../OpenGraph.svelte\';\\n\\texport let title;\\n\\texport let excerpt;\\n\\texport let image;\\n\\texport let slug;\\n\\texport let keywords;\\n\\texport let url = `https://${$page.host}${$page.path}`;\\n\\n\\tconst socialLinks = [\\n\\t\\t{\\n\\t\\t\\thref: `https://twitter.com/intent/tweet?text=${encodeURIComponent(\\n\\t\\t\\t\\t`${title} by @brandenbuilds ${url}`\\n\\t\\t\\t)}`,\\n\\t\\t\\talt: \'Twitter\',\\n\\t\\t\\ticon: \'/svg/logos/twitter.svg\',\\n\\t\\t\\ttrackingName: \'twitter\'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\thref: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(\\n\\t\\t\\t\\t`${url}`\\n\\t\\t\\t)}&t=${title}`,\\n\\t\\t\\talt: \'Facebook\',\\n\\t\\t\\ticon: \'/svg/logos/facebook.svg\',\\n\\t\\t\\ttrackingName: \'facebook\'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\thref: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,\\n\\t\\t\\talt: \'Linkedin\',\\n\\t\\t\\ticon: \'/svg/logos/linkedin.svg\',\\n\\t\\t\\ttrackingName: \'linkedin\'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\thref: `http://www.reddit.com/submit?url=${encodeURIComponent(`${url}&title=${title}`)}`,\\n\\t\\t\\talt: \'Reddit\',\\n\\t\\t\\ticon: \'/svg/logos/reddit.svg\',\\n\\t\\t\\ttrackingName: \'reddit\'\\n\\t\\t}\\n\\t];\\n<\/script>\\n\\n<OpenGraph {title} {keywords} description={excerpt} {url} image={`images/blog/${slug}/${image}`} />\\n\\n<article class=\\"blog-post container max-w-3xl mx-auto py-10 lg:py-20 px-4\\">\\n\\t<slot />\\n\\t<section class=\\"share border-t border-solid border-bbuilds-black mt-4\\">\\n\\t\\t<h2 class=\\"text-xl my-4\\">Share This Post</h2>\\n\\t\\t<ul class=\\"flex\\" style=\\"list-style: none; padding-left:0;\\">\\n\\t\\t\\t{#each socialLinks as link}\\n\\t\\t\\t\\t<li class=\\"mr-2\\">\\n\\t\\t\\t\\t\\t<a\\n\\t\\t\\t\\t\\t\\thref={link.href}\\n\\t\\t\\t\\t\\t\\ttarget=\\"_blank\\"\\n\\t\\t\\t\\t\\t\\tclass=\\"block transition duration-300 ease-in-out transform hover:-translate-y-1\\"\\n\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t\\t<img\\n\\t\\t\\t\\t\\t\\t\\tsrc={link.icon}\\n\\t\\t\\t\\t\\t\\t\\talt={link.alt}\\n\\t\\t\\t\\t\\t\\t\\theight=\\"24\\"\\n\\t\\t\\t\\t\\t\\t\\twidth=\\"24\\"\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"bg-bbuilds-yellow overflow-hidden\\"\\n\\t\\t\\t\\t\\t\\t/>\\n\\t\\t\\t\\t\\t</a>\\n\\t\\t\\t\\t</li>\\n\\t\\t\\t{/each}\\n\\t\\t</ul>\\n\\t</section>\\n</article>\\n\\n<style>:global(body) {\\n  line-height: 1.5;\\n}\\n:global(.blog-post ul) {\\n  padding-inline-start: 1.7em;\\n  list-style: disc;\\n}\\n:global(.blog-post ul > li) {\\n  padding-left: 0.1em;\\n}\\n:global(.blog-post p) {\\n  margin-top: 0.5em;\\n  margin-bottom: 0.5em;\\n}\\n:global(.post-img) {\\n  margin-top: 1rem;\\n  margin-bottom: 1rem;\\n}\\n:global(h1), :global(h2), :global(h3), :global(h4), :global(h5), :global(h6) {\\n  line-height: 1.25;\\n  margin-top: 1.25rem;\\n  margin-bottom: 1rem;\\n}\\n:global(h2) {\\n  margin-top: 2rem;\\n}</style>\\n"],"names":[],"mappings":"AAsEe,IAAI,AAAE,CAAC,AACpB,WAAW,CAAE,GAAG,AAClB,CAAC,AACO,aAAa,AAAE,CAAC,AACtB,oBAAoB,CAAE,KAAK,CAC3B,UAAU,CAAE,IAAI,AAClB,CAAC,AACO,kBAAkB,AAAE,CAAC,AAC3B,YAAY,CAAE,KAAK,AACrB,CAAC,AACO,YAAY,AAAE,CAAC,AACrB,UAAU,CAAE,KAAK,CACjB,aAAa,CAAE,KAAK,AACtB,CAAC,AACO,SAAS,AAAE,CAAC,AAClB,UAAU,CAAE,IAAI,CAChB,aAAa,CAAE,IAAI,AACrB,CAAC,AACO,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAE,CAAC,AAC5E,WAAW,CAAE,IAAI,CACjB,UAAU,CAAE,OAAO,CACnB,aAAa,CAAE,IAAI,AACrB,CAAC,AACO,EAAE,AAAE,CAAC,AACX,UAAU,CAAE,IAAI,AAClB,CAAC"}'
+var css$g = {
+  code: "body{line-height:1.5}.blog-post ul{padding-inline-start:1.7em;list-style:disc}.blog-post ul > li{padding-left:0.1em}.blog-post p{margin-top:0.5em;margin-bottom:0.5em}.blog-post a{margin-top:0.5em;margin-bottom:0.5em;position:relative;text-decoration:underline}.blog-post a::before{content:'';position:absolute;bottom:0;right:0;width:0;height:2px;--tw-bg-opacity:1;background-color:rgba(41, 41, 41, var(--tw-bg-opacity));transition:width 0.6s cubic-bezier(0.25, 1, 0.5, 1)}.blog-post a:hover::before{left:0;right:auto;width:100%}.post-img{margin-top:1rem;margin-bottom:1rem}h1,h2,h3,h4,h5,h6{line-height:1.25;margin-top:1.25rem;margin-bottom:1rem}h2{margin-top:2rem}",
+  map: `{"version":3,"file":"blog.svelte","sources":["blog.svelte"],"sourcesContent":["<script>\\n\\timport { page } from '$app/stores';\\n\\timport MetaTags from '$lib/MetaTags.svelte';\\n\\n\\texport let title;\\n\\texport let excerpt;\\n\\texport let image;\\n\\texport let slug;\\n\\texport let keywords;\\n\\texport let genre;\\n\\texport let date;\\n\\texport let wordcount;\\n\\texport let url = \`https://\${$page.host}\${$page.path}\`;\\n\\n\\tconst socialLinks = [\\n\\t\\t{\\n\\t\\t\\thref: \`https://twitter.com/intent/tweet?text=\${encodeURIComponent(\\n\\t\\t\\t\\t\`\${title} by @brandenbuilds \${url}\`\\n\\t\\t\\t)}\`,\\n\\t\\t\\talt: 'Share this post on Twitter',\\n\\t\\t\\ticon: '/svg/logos/twitter.svg',\\n\\t\\t\\ttrackingName: 'twitter'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\thref: \`https://www.facebook.com/sharer/sharer.php?u=\${encodeURIComponent(\\n\\t\\t\\t\\t\`\${url}\`\\n\\t\\t\\t)}&t=\${title}\`,\\n\\t\\t\\talt: 'Share this post on Facebook',\\n\\t\\t\\ticon: '/svg/logos/facebook.svg',\\n\\t\\t\\ttrackingName: 'facebook'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\thref: \`https://www.linkedin.com/sharing/share-offsite/?url=\${url}\`,\\n\\t\\t\\talt: 'Share this post on Linkedin',\\n\\t\\t\\ticon: '/svg/logos/linkedin.svg',\\n\\t\\t\\ttrackingName: 'linkedin'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\thref: \`http://www.reddit.com/submit?url=\${encodeURIComponent(\`\${url}&title=\${title}\`)}\`,\\n\\t\\t\\talt: 'Share this post on Reddit',\\n\\t\\t\\ticon: '/svg/logos/reddit.svg',\\n\\t\\t\\ttrackingName: 'reddit'\\n\\t\\t}\\n\\t];\\n<\/script>\\n\\n<MetaTags\\n\\t{title}\\n\\tdescription={excerpt}\\n\\t{keywords}\\n\\timage={\`https://\${$page.host}/images/blog/\${slug}/\${image}\`}\\n\\t{url}\\n\\tjsonLd={{\\n\\t\\t'@type': 'BlogPosting',\\n\\t\\theadline: { title },\\n\\t\\timage: \`images/blog/\${slug}/\${image}\`,\\n\\t\\taward: 'Best article ever written',\\n\\t\\teditor: 'Branden Builds',\\n\\t\\tgenre: { genre },\\n\\t\\tkeywords: { keywords },\\n\\t\\twordcount: { wordcount },\\n\\t\\tpublisher: 'Branden Builds',\\n\\t\\turl: { url },\\n\\t\\tdatePublished: { date },\\n\\t\\tdateCreated: { date },\\n\\t\\tdateModified: { date },\\n\\t\\tdescription: { excerpt },\\n\\t\\tauthor: {\\n\\t\\t\\t'@type': 'Person',\\n\\t\\t\\tname: 'Branden Builds'\\n\\t\\t}\\n\\t}}\\n/>\\n\\n<article class=\\"blog-post container max-w-3xl mx-auto py-10 lg:py-20 px-4\\">\\n\\t<slot />\\n\\t<section class=\\"share border-t border-solid border-bbuilds-black mt-4\\">\\n\\t\\t<h2 class=\\"text-xl my-4\\">Share This Post</h2>\\n\\t\\t<ul class=\\"flex\\" style=\\"list-style: none; padding-left:0;\\">\\n\\t\\t\\t{#each socialLinks as link}\\n\\t\\t\\t\\t<li class=\\"mr-2\\">\\n\\t\\t\\t\\t\\t<a\\n\\t\\t\\t\\t\\t\\thref={link.href}\\n\\t\\t\\t\\t\\t\\ttarget=\\"_blank\\"\\n\\t\\t\\t\\t\\t\\tclass=\\"block transition duration-300 ease-in-out transform hover:-translate-y-1\\"\\n\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t\\t<img\\n\\t\\t\\t\\t\\t\\t\\tsrc={link.icon}\\n\\t\\t\\t\\t\\t\\t\\talt={link.alt}\\n\\t\\t\\t\\t\\t\\t\\theight=\\"24\\"\\n\\t\\t\\t\\t\\t\\t\\twidth=\\"24\\"\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"bg-bbuilds-yellow overflow-hidden\\"\\n\\t\\t\\t\\t\\t\\t/>\\n\\t\\t\\t\\t\\t</a>\\n\\t\\t\\t\\t</li>\\n\\t\\t\\t{/each}\\n\\t\\t</ul>\\n\\t</section>\\n</article>\\n\\n<style>:global(body) {\\n  line-height: 1.5;\\n}\\n:global(.blog-post ul) {\\n  padding-inline-start: 1.7em;\\n  list-style: disc;\\n}\\n:global(.blog-post ul > li) {\\n  padding-left: 0.1em;\\n}\\n:global(.blog-post p) {\\n  margin-top: 0.5em;\\n  margin-bottom: 0.5em;\\n}\\n:global(.blog-post a) {\\n  margin-top: 0.5em;\\n  margin-bottom: 0.5em;\\n  position: relative;\\n  text-decoration: underline;\\n}\\n:global(.blog-post a::before) {\\n  content: '';\\n  position: absolute;\\n  bottom: 0;\\n  right: 0;\\n  width: 0;\\n  height: 2px;\\n  --tw-bg-opacity: 1;\\n  background-color: rgba(41, 41, 41, var(--tw-bg-opacity));\\n  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);\\n}\\n:global(.blog-post a:hover::before) {\\n  left: 0;\\n  right: auto;\\n  width: 100%;\\n}\\n:global(.post-img) {\\n  margin-top: 1rem;\\n  margin-bottom: 1rem;\\n}\\n:global(h1), :global(h2), :global(h3), :global(h4), :global(h5), :global(h6) {\\n  line-height: 1.25;\\n  margin-top: 1.25rem;\\n  margin-bottom: 1rem;\\n}\\n:global(h2) {\\n  margin-top: 2rem;\\n}</style>\\n"],"names":[],"mappings":"AAoGe,IAAI,AAAE,CAAC,AACpB,WAAW,CAAE,GAAG,AAClB,CAAC,AACO,aAAa,AAAE,CAAC,AACtB,oBAAoB,CAAE,KAAK,CAC3B,UAAU,CAAE,IAAI,AAClB,CAAC,AACO,kBAAkB,AAAE,CAAC,AAC3B,YAAY,CAAE,KAAK,AACrB,CAAC,AACO,YAAY,AAAE,CAAC,AACrB,UAAU,CAAE,KAAK,CACjB,aAAa,CAAE,KAAK,AACtB,CAAC,AACO,YAAY,AAAE,CAAC,AACrB,UAAU,CAAE,KAAK,CACjB,aAAa,CAAE,KAAK,CACpB,QAAQ,CAAE,QAAQ,CAClB,eAAe,CAAE,SAAS,AAC5B,CAAC,AACO,oBAAoB,AAAE,CAAC,AAC7B,OAAO,CAAE,EAAE,CACX,QAAQ,CAAE,QAAQ,CAClB,MAAM,CAAE,CAAC,CACT,KAAK,CAAE,CAAC,CACR,KAAK,CAAE,CAAC,CACR,MAAM,CAAE,GAAG,CACX,eAAe,CAAE,CAAC,CAClB,gBAAgB,CAAE,KAAK,EAAE,CAAC,CAAC,EAAE,CAAC,CAAC,EAAE,CAAC,CAAC,IAAI,eAAe,CAAC,CAAC,CACxD,UAAU,CAAE,KAAK,CAAC,IAAI,CAAC,aAAa,IAAI,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,CAAC,CAAC,AACtD,CAAC,AACO,0BAA0B,AAAE,CAAC,AACnC,IAAI,CAAE,CAAC,CACP,KAAK,CAAE,IAAI,CACX,KAAK,CAAE,IAAI,AACb,CAAC,AACO,SAAS,AAAE,CAAC,AAClB,UAAU,CAAE,IAAI,CAChB,aAAa,CAAE,IAAI,AACrB,CAAC,AACO,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAC,CAAU,EAAE,AAAE,CAAC,AAC5E,WAAW,CAAE,IAAI,CACjB,UAAU,CAAE,OAAO,CACnB,aAAa,CAAE,IAAI,AACrB,CAAC,AACO,EAAE,AAAE,CAAC,AACX,UAAU,CAAE,IAAI,AAClB,CAAC"}`
 };
 var Blog$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $page, $$unsubscribe_page;
@@ -3462,29 +3512,32 @@ var Blog$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let { image: image2 } = $$props;
   let { slug: slug2 } = $$props;
   let { keywords: keywords2 } = $$props;
+  let { genre: genre2 } = $$props;
+  let { date: date2 } = $$props;
+  let { wordcount: wordcount2 } = $$props;
   let { url = `https://${$page.host}${$page.path}` } = $$props;
   const socialLinks = [
     {
       href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${title2} by @brandenbuilds ${url}`)}`,
-      alt: "Twitter",
+      alt: "Share this post on Twitter",
       icon: "/svg/logos/twitter.svg",
       trackingName: "twitter"
     },
     {
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${url}`)}&t=${title2}`,
-      alt: "Facebook",
+      alt: "Share this post on Facebook",
       icon: "/svg/logos/facebook.svg",
       trackingName: "facebook"
     },
     {
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-      alt: "Linkedin",
+      alt: "Share this post on Linkedin",
       icon: "/svg/logos/linkedin.svg",
       trackingName: "linkedin"
     },
     {
       href: `http://www.reddit.com/submit?url=${encodeURIComponent(`${url}&title=${title2}`)}`,
-      alt: "Reddit",
+      alt: "Share this post on Reddit",
       icon: "/svg/logos/reddit.svg",
       trackingName: "reddit"
     }
@@ -3499,16 +3552,42 @@ var Blog$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.slug(slug2);
   if ($$props.keywords === void 0 && $$bindings.keywords && keywords2 !== void 0)
     $$bindings.keywords(keywords2);
+  if ($$props.genre === void 0 && $$bindings.genre && genre2 !== void 0)
+    $$bindings.genre(genre2);
+  if ($$props.date === void 0 && $$bindings.date && date2 !== void 0)
+    $$bindings.date(date2);
+  if ($$props.wordcount === void 0 && $$bindings.wordcount && wordcount2 !== void 0)
+    $$bindings.wordcount(wordcount2);
   if ($$props.url === void 0 && $$bindings.url && url !== void 0)
     $$bindings.url(url);
-  $$result.css.add(css$e);
+  $$result.css.add(css$g);
   $$unsubscribe_page();
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: title2,
-    keywords: keywords2,
     description: excerpt2,
+    keywords: keywords2,
+    image: `https://${$page.host}/images/blog/${slug2}/${image2}`,
     url,
-    image: `images/blog/${slug2}/${image2}`
+    jsonLd: {
+      "@type": "BlogPosting",
+      headline: { title: title2 },
+      image: `images/blog/${slug2}/${image2}`,
+      award: "Best article ever written",
+      editor: "Branden Builds",
+      genre: { genre: genre2 },
+      keywords: { keywords: keywords2 },
+      wordcount: { wordcount: wordcount2 },
+      publisher: "Branden Builds",
+      url: { url },
+      datePublished: { date: date2 },
+      dateCreated: { date: date2 },
+      dateModified: { date: date2 },
+      description: { excerpt: excerpt2 },
+      author: {
+        "@type": "Person",
+        name: "Branden Builds"
+      }
+    }
   }, {}, {})}
 
 <article class="${"blog-post container max-w-3xl mx-auto py-10 lg:py-20 px-4"}">${slots.default ? slots.default({}) : ``}
@@ -3517,7 +3596,7 @@ var Blog$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
 				</li>`)}</ul></section>
 </article>`;
 });
-var FeaturedImageObj$1 = "/_app/assets/branden-builds-website-blog-2b57e68f.webp 1200w";
+var FeaturedImageObj$2 = "/_app/assets/branden-builds-website-blog-2b57e68f.webp 1200w";
 var FeaturedImage = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let { src: src2 } = $$props;
   let { alt } = $$props;
@@ -3546,31 +3625,33 @@ var BlogHeader = create_ssr_component(($$result, $$props, $$bindings, slots) => 
   if ($$props.postPreview === void 0 && $$bindings.postPreview && postPreview !== void 0)
     $$bindings.postPreview(postPreview);
   return `<header>${postPreview ? `<h2 class="${"my-3 leading-none text-xl"}">${escape2(title2)}</h2>` : `<h1 class="${"mt-4"}">${escape2(title2)}</h1>`}
-	<div class="${"post-meta " + escape2(postPreview ? "mb-2" : "mb-6")}"><p class="${"text-small"}">Posted: <time${add_attribute("datetime", rawDate, 0)}>${escape2(dateDisplay)}</time> | Tags: 
-			${each(tags2, (tag, index2) => `<a${add_attribute("href", `/tags/${tag}`, 0)}>${escape2(tag)}</a>${index2 < tags2.length - 1 ? `,\xA0` : ``}`)}</p></div></header>`;
+	<div class="${"post-meta " + escape2(postPreview ? "mb-2" : "mb-6")}"><p class="${"text-small"}">Posted: <time${add_attribute("datetime", rawDate, 0)}>${escape2(dateDisplay)}</time> | Tags:
+			${each(tags2, (tag, index2) => `${postPreview ? `${escape2(tag)}${index2 < tags2.length - 1 ? `,\xA0` : ``}` : `<a${add_attribute("href", `/tags/${tag}`, 0)}>${escape2(tag)}</a>${index2 < tags2.length - 1 ? `,\xA0` : ``}`}`)}</p></div></header>`;
 });
-var metadata$1 = {
+var metadata$2 = {
   "layout": "blog",
   "title": "Branden Builds Website Launch",
   "tags": ["svelte", "blog"],
-  "date": "2021-08-03T00:00:00.000Z",
+  "date": "2021-08-01T18:22:22.000Z",
   "image": "branden-builds-website-blog.png",
   "id": "b1",
   "excerpt": "Branden Builds has officially launched and I'm very excited to show the world.",
   "slug": "branden-builds-launches",
-  "keywords": "branding, website launch, svelte, branden builds, freelance web developer, frontend developer"
+  "keywords": "branding, website launch, svelte, branden builds, freelance web developer, frontend developer",
+  "genre": "websites",
+  "wordcount": 343
 };
-var { layout: layout$1, title: title$1, tags: tags$1, date: date$1, image: image$1, id: id$1, excerpt: excerpt$1, slug: slug$1, keywords: keywords$1 } = metadata$1;
+var { layout: layout$2, title: title$2, tags: tags$2, date: date$2, image: image$2, id: id$2, excerpt: excerpt$2, slug: slug$2, keywords: keywords$2, genre: genre$2, wordcount: wordcount$2 } = metadata$2;
 var Branden_builds_launches = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `${validate_component(Blog$1, "Layout_MDSVEX_DEFAULT").$$render($$result, Object.assign($$props, metadata$1), {}, {
-    default: () => `${validate_component(FeaturedImage, "FeaturedImage").$$render($$result, { src: FeaturedImageObj$1, alt: title$1 }, {}, {})}
-${validate_component(BlogHeader, "BlogHeader").$$render($$result, { rawDate: date$1, title: title$1, tags: tags$1 }, {}, {})}
+  return `${validate_component(Blog$1, "Layout_MDSVEX_DEFAULT").$$render($$result, Object.assign($$props, metadata$2), {}, {
+    default: () => `${validate_component(FeaturedImage, "FeaturedImage").$$render($$result, { src: FeaturedImageObj$2, alt: title$2 }, {}, {})}
+${validate_component(BlogHeader, "BlogHeader").$$render($$result, { rawDate: date$2, title: title$2, tags: tags$2 }, {}, {})}
 <p>I am excited to announced that I have officially launched my new website and blog. This project gave me a chance to try out some new tech I\u2019ve been eager to learn.</p>
 <h2>Branden Builds Branding</h2>
 <p>I reached out to a previous coworker and awesome friend, Mister Munn, who does phenomenal <a href="${"http://mistermunn.com/"}" rel="${"nofollow"}">identity branding services</a>. </p>
 <h2>The Website Stack</h2>
 <h3>Sveltekit</h3>
-<p>I\u2019ve been hearing the help on Svelte and was eager to try a new framework. I love React and Vue, but always game to learn some new tech.  I decided on Svelte after running through a tutorial and loved how easy and simple it was to include use popular frontend techniques like reactivity and routing. </p>
+<p>I\u2019ve been hearing the help on Svelte and was eager to try a new framework. I love React and Vue but always game to learn some new tech.  I decided on Svelte after running through a tutorial and loved how easy and simple it was to include use popular frontend techniques like reactivity and routing. </p>
 <p>I ran through Gatsby and loved it as well, which I used over at my <a href="${"https://byoungz.com"}" rel="${"nofollow"}">digital nomad blog</a> and didn\u2019t really have any complaints. I just honestly wanted to play with some new tech.</p>
 <h3>WindiCSS</h3>
 <p><a href="${"https://windicss.org/guide/"}" rel="${"nofollow"}">WindiCSS</a> is very similar to Tailwind as in it\u2019s built off Tailwinds utility first approach. The difference, which is why WindiCSS claims to be faster than Tailwind, is it is a standalone compiler for Tailwind that generates classes on demand. </p>
@@ -3579,52 +3660,54 @@ ${validate_component(BlogHeader, "BlogHeader").$$render($$result, { rawDate: dat
 <h3>Vite Image Tools</h3>
 <p>I wanted a tool similar to Gatsby Image that handles optimization, srcset, and other modern image techniques for my images. I found <a href="${"https://github.com/JonasKruckenberg/imagetools/tree/main/packages/vite"}" rel="${"nofollow"}">Vite Image Tools</a> after looking around Discord and a Reddit post. </p>
 <h2>Pain Points</h2>
-<p><strong>Image handling</strong> in svelte/svelte kit is not a great experience yet. The biggest issue for me, especially after being spoiled with GatsbyImage, is a way to dynamically use images in Vite Image Tools. Vite Image Tools is awesome, but uses an import statement which means no template literals so I have to hard code in each image for my blog. This is gonna be a focus point in next iteration of my blog.</p>`
+<p><strong>Image handling</strong> in svelte/svelte kit is not a great experience yet. The biggest issue for me, especially after being spoiled with GatsbyImage, is a way to dynamically use images in Vite Image Tools. Vite Image Tools is awesome, but uses an import statement which means no template literals so I have to hard code in each image for my blog. This is gonna be a focal point in the next iteration of my blog.</p>`
   })}`;
 });
 var brandenBuildsLaunches = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
   "default": Branden_builds_launches,
-  metadata: metadata$1
+  metadata: metadata$2
 });
-var FeaturedImageObj = "/_app/assets/byoungz-website-gatsby-headlesswp-af326bd1.webp 1200w";
+var FeaturedImageObj$1 = "/_app/assets/byoungz-website-gatsby-headlesswp-af326bd1.webp 1200w";
 var TraditionalWPSS = "/_app/assets/traditional-wordpress-byoungz-ss-cd0127d7.webp 850w";
 var GatsbyWPSS = "/_app/assets/byoungz-gatsby-build-ce383e4d.webp 850w";
-var metadata = {
+var metadata$1 = {
   "layout": "blog",
   "title": "Headless WordPress and Gatsby",
   "tags": ["gatsbyjs", "headlesswp"],
-  "date": "Jul 27 2021",
+  "date": "2021-07-21T22:51:33.000Z",
   "image": "byoungz-website-gatsby-headlesswp.jpg",
   "id": "b2",
   "excerpt": "Byoungz, my digital nmad blog was recently re-built on GtasbyJS and Headless WP setup.",
   "slug": "byoungz-headlesswp-gatsby",
-  "keywords": "website launch, gatsbyjs, headlesswp, jamstack"
+  "keywords": "website launch, gatsbyjs, headlesswp, jamstack",
+  "genre": "headless wordpress",
+  "wordcount": 611
 };
-var { layout, title, tags, date, image, id, excerpt, slug, keywords } = metadata;
+var { layout: layout$1, title: title$1, tags: tags$1, date: date$1, image: image$1, id: id$1, excerpt: excerpt$1, slug: slug$1, keywords: keywords$1, genre: genre$1, wordcount: wordcount$1 } = metadata$1;
 var Byoungz_headlesswp_gatsby = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `${validate_component(Blog$1, "Layout_MDSVEX_DEFAULT").$$render($$result, Object.assign($$props, metadata), {}, {
-    default: () => `${validate_component(FeaturedImage, "FeaturedImage").$$render($$result, { src: FeaturedImageObj, alt: title }, {}, {})}
-${validate_component(BlogHeader, "BlogHeader").$$render($$result, { rawDate: date, title, tags }, {}, {})}
-<p>I recently re-developed my <a href="${"https://byoungz.com"}" rel="${"nofollow"}">digital nomad blog</a> using Gatsby on the frontend and still leveraging WP as the backend. Often, you\u2019ll hear this referred to as Headless WP built on <a href="${"https://jamstack.org/what-is-jamstack/"}" rel="${"nofollow"}">Jamstack</a>, which have been pretty trendy buzzwords these past few years but with good reason. To put it simply, it means you use WordPress to manage content and source data as a backend and then display the data or frontend, in whatever tech stack you\u2019d like. </p>
+  return `${validate_component(Blog$1, "Layout_MDSVEX_DEFAULT").$$render($$result, Object.assign($$props, metadata$1), {}, {
+    default: () => `${validate_component(FeaturedImage, "FeaturedImage").$$render($$result, { src: FeaturedImageObj$1, alt: title$1 }, {}, {})}
+${validate_component(BlogHeader, "BlogHeader").$$render($$result, { rawDate: date$1, title: title$1, tags: tags$1 }, {}, {})}
+<p>I recently re-developed my <a href="${"https://byoungz.com"}" rel="${"nofollow"}">digital nomad blog</a> using Gatsby on the frontend and still leveraging WP as the backend. Often, you\u2019ll hear this referred to as Headless WP built on <a href="${"https://jamstack.org/what-is-jamstack/"}" rel="${"nofollow"}">Jamstack</a>, which have been pretty trendy buzzwords these past few years but with good reason. To put it simply, it means you use WordPress to manage content and source data as a backend and then display the data or frontend, in whatever tech stack you\u2019d like.</p>
 <p><a href="${"https://github.com/bbuilds/byoungz-gatsby-headlesswp"}" rel="${"nofollow"}">View my Github repo here.</a></p>
 <h2>Why Headless WP and Gatsby?</h2>
 <h3>Traditional WordPress Woes</h3>
 <p>I was facing a few interesting challenges with the WordPress community. Any developer in the WP world knows that the maintainers of WP are really pushing a block editor, which for over simplicity, is a chance to be like Wix. Upon trying to mend to to the new standards, I found enormous frustration trying to build within the block editor. Those frustrations can be a blog post another time.</p>
-<p>Second, Google also released its <a href="${"https://web.dev/vitals/"}" rel="${"nofollow"}">core web vitals</a> and that in June 2021, this will have direct impact on organic search ranking. WordPress has always been infamous for being bloated and requires a bit of work for optimal site speed. I personally was tired of stripping down and not building up. Jamstack and the frameworks behind this methodology pride themselves in providing modern solutions for modern problems.</p>
+<p>Second, Google also released its <a href="${"https://web.dev/vitals/"}" rel="${"nofollow"}">core web vitals</a>, and that in June 2021, this will have a direct impact on organic search ranking. WordPress has always been infamous for being bloated and requires a bit of work for optimal site speed. I personally was tired of stripping down and not building up. Jamstack and the frameworks behind this methodology pride themselves on providing modern solutions for modern problems.</p>
 <ul><li>code splitting</li>
 <li>image optimization</li>
 <li>inline critical styles</li>
 <li>lazy-loading</li>
 <li>prefetching</li>
 <li>built in PWA support</li></ul>
-<p>A personal reason is I just wanted to explore new tech. Outside the WordPress agency world, modern JS frameworks dominate the web developer job descriptions and I wanted to see what all the hype was about. </p>
+<p>A personal reason is I just wanted to explore new tech. Outside the WordPress agency world, modern JS frameworks dominate the web developer job descriptions and I wanted to see what all the hype was about.</p>
 <h3>Why Gatsby?</h3>
-<p>Gatsby really seemed to lead the forefront on static site generation. They also have a really sexy developer experience with integrating WordPress into their GraphQL layer. They have a <a href="${"https://www.gatsbyjs.com/plugins/gatsby-source-wordpress/"}" rel="${"nofollow"}">plugin</a> that handles sourcing all the data for you, which was officially released this year. They also provide incremental builds with web hooks which cuts down build times drastically (a common pain point once with static site generation.) </p>
-<p>There is also an awesome community and resource system behind Gatsby and using WP with Gatsby. It was really easily to find resources, source code, and tutorials to get up and moving pretty quickly. </p>
+<p>Gatsby really seemed to lead the forefront on static site generation. They also have a really sexy developer experience with integrating WordPress into their GraphQL layer. They have a <a href="${"https://www.gatsbyjs.com/plugins/gatsby-source-wordpress/"}" rel="${"nofollow"}">plugin</a> that handles sourcing all the data for you, which was officially released this year. They also provide incremental builds with web hooks which cut down build times drastically (a common pain point once with static site generation.)</p>
+<p>There is also an awesome community and resource system behind Gatsby and using WP with Gatsby. It was really easy to find resources, source code, and tutorials to get up and moving pretty quickly.</p>
 <h2>The End Product</h2>
-<p>I will admit, I could have done more optimizing here. Things like some images were still using PNG and not convert to WEBp, but overall, was still pretty slow. </p>
+<p>I will admit, I could have done more optimizing here. Things like some images were still using PNG and not convert to WEBp, but overall, was still pretty slow.</p>
 <h3>Previous Build</h3>
 <ul><li>Sage Starter Theme</li>
 <li>Tailwind CSS</li>
@@ -3646,69 +3729,124 @@ ${validate_component(BlogHeader, "BlogHeader").$$render($$result, { rawDate: dat
 <h2>Final Thoughts</h2>
 <p>I absolutely loved working with Gatsby and was fairly impressed how quickly I could get moving.</p>
 <h3>Pit Falls</h3>
-<p>If you\u2019re not familiar with the JS development world, be prepared for NPM hell. As I was cloning down different community plugins and themes, there was a lot of compatibility issues. Updating NPM packages was a grueling process and wanted to rip my hair out at times. I personally will only use officially developed plugins by Gatsby and mostly going to stay away from community sourced. </p>
-<p>Losing the WP plugin ecosystem. Love it or hate it, WP makes it super easy to have custom functionality on your website with its plugin ecosystem. While there is a lot of outdated trash there, the positives outweighs the negative here by a long shot. I had to write out my own serverless IG snippet to pull in my feed onto my new Gatsby site. </p>`
+<p>If you\u2019re not familiar with the JS development world, be prepared for NPM hell. As I was cloning down different community plugins and themes, there was a lot of compatibility issues. Updating NPM packages was a grueling process and wanted to rip my hair out at times. I personally will only use officially developed plugins by Gatsby and mostly going to stay away from community sourced.</p>
+<p>Losing the WP plugin ecosystem. Love it or hate it, WP makes it super easy to have custom functionality on your website with its plugin ecosystem. While there is a lot of outdated trash there, the positives outweigh the negative here by a long shot. I had to write out my own serverless IG snippet to pull in my feed onto my new Gatsby site.</p>`
   })}`;
 });
 var byoungzHeadlesswpGatsby = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
   "default": Byoungz_headlesswp_gatsby,
+  metadata: metadata$1
+});
+var FeaturedImageObj = "/_app/assets/branden-builds-interview-codehs-b457e6fa.webp 1200w";
+var metadata = {
+  "layout": "blog",
+  "title": "Branden Builds Interview with CodeHS",
+  "tags": ["interview"],
+  "date": "2021-08-05T09:12:22.000Z",
+  "image": "branden-builds-interview-codehs.png",
+  "id": "b3",
+  "excerpt": "I recently completed an interview with CodeHS blog Coding in the Wild. I discuss what it's like to be a freelancer and some projects I get to work on.",
+  "slug": "interview-with-codehs",
+  "keywords": "interview, coding, codeHS, coding in the wild",
+  "genre": "websites",
+  "wordcount": 343
+};
+var { layout, title, tags, date, image, id, excerpt, slug, keywords, genre, wordcount } = metadata;
+var Interview_with_codehs = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `${validate_component(Blog$1, "Layout_MDSVEX_DEFAULT").$$render($$result, Object.assign($$props, metadata), {}, {
+    default: () => `${validate_component(FeaturedImage, "FeaturedImage").$$render($$result, { src: FeaturedImageObj, alt: title }, {}, {})}
+${validate_component(BlogHeader, "BlogHeader").$$render($$result, { rawDate: date, title, tags }, {}, {})}
+<p>I was contacted from a repersentative of <a href="${"https://codehs.com/"}" target="${"_blank"}">CodeHS</a> to complete an interview with their career blog, <a href="${"https://codinginthewild.com/"}" target="${"_blank"}" rel="${"external noopener noreferrer"}">Coding in the Wild.</a> I discuss different projects I\u2019ve worked on and what it\u2019s like to be a digital nomad (pre-covid.)</p>
+<p>You can read the <a href="${"https://codinginthewild.com/coding-for-custom-web-applications-a407fce6c8bd"}" target="${"_blank"}" rel="${"external"}">entire interview here. </a></p>`
+  })}`;
+});
+var interviewWithCodehs = /* @__PURE__ */ Object.freeze({
+  __proto__: null,
+  [Symbol.toStringTag]: "Module",
+  "default": Interview_with_codehs,
   metadata
 });
-var get$4 = async () => {
+var get$3 = async () => {
   const body = `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-      <loc>https://bbuilds-website.netlify.app/</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>1.00</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/services</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/blog</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/contact</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/blog/branden-builds-launches</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/tags/svelte</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/tags/blog</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/blog/byoungz-headlesswp-gatsby</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/tags/gatsbyjs</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
-    <url>
-      <loc>https://bbuilds-website.netlify.app/tags/headlesswp</loc>
-      <lastmod>2021-08-11T23:55:54+00:00</lastmod>
-      <priority>0.80</priority>
-    </url>
+  <loc>https://brandenbuilds.com/</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>1.00</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/services</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/web-development</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/headless-wordpress-development</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/wordpress-development</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/seo</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/branding</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/blog</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/contact</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/blog/branden-builds-launches</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/tags/svelte</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/tags/blog</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/blog/byoungz-headlesswp-gatsby</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/tags/gatsbyjs</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://brandenbuilds.com/tags/headlesswp</loc>
+  <lastmod>2021-08-17T16:36:07+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+
     
     
     </urlset>
@@ -3724,9 +3862,9 @@ var get$4 = async () => {
 var sitemap_xml = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
-  get: get$4
+  get: get$3
 });
-async function get$3() {
+async function get$2() {
   return {
     body: {
       title: "Services && Skills",
@@ -3768,9 +3906,9 @@ async function get$3() {
 var services$1 = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
-  get: get$3
+  get: get$2
 });
-async function get$2() {
+async function get$1() {
   return {
     body: {
       title: "Tech Stax",
@@ -3873,9 +4011,9 @@ async function get$2() {
 var skillset = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
-  get: get$2
+  get: get$1
 });
-async function get$1() {
+async function get() {
   return {
     body: {
       processTitle: "Methods && Madness",
@@ -3915,50 +4053,30 @@ async function get$1() {
 var process2 = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
-  get: get$1
-});
-async function get() {
-  return {
-    body: {
-      heroTitle: "Greetings I'm",
-      heroSubtitle: "I enjoy building...",
-      heroServices: [
-        "Engaging Experiences \u{1F981}",
-        "Lean Products \u26A1",
-        "Accelerated Brands \u{1F331}",
-        "Technical SEO \u{1F913}"
-      ]
-    }
-  };
-}
-var hero = /* @__PURE__ */ Object.freeze({
-  __proto__: null,
-  [Symbol.toStringTag]: "Module",
   get
 });
-var css$d = {
-  code: "a.svelte-aoksc{font-size:1.563rem}@media(min-width: 768px){a.svelte-aoksc{font-size:1rem;margin-bottom:0px}.dropdown-menu.svelte-aoksc{min-width:22.5rem;visibility:hidden;opacity:0}}.active.svelte-aoksc{--tw-text-opacity:1;color:rgba(255, 205, 103, var(--tw-text-opacity))}",
-  map: `{"version":3,"file":"NavItem.svelte","sources":["NavItem.svelte"],"sourcesContent":["<script>\\n\\timport { page } from '$app/stores';\\n\\timport { fly } from 'svelte/transition';\\n\\n\\texport let navItem;\\n\\n\\tconst { href, isHighlighted, title, children } = navItem;\\n\\n\\t$: isActivePage = $page.path === '/' ? /\\\\/$/.test(href) : href.indexOf($page.path) >= 0;\\n\\n\\n<\/script>\\n\\n<a\\n\\tclass:active={isActivePage}\\n\\tclass:highlighted={isHighlighted}\\n\\t{href}\\n\\tsveltekit:prefetch\\n\\ton:click\\n\\tclass=\\"text-bbuilds-teal hover:text-bbuilds-yellow mb-4\\"\\n>\\n\\t{title}\\n\\n\\t{#if children}\\n\\t\\t<div\\n\\t\\t\\tclass=\\"dropdown-menu md:absolute md:z-50 md:rounded  md:shadow-lg md:bg-bbuilds-black md:text-white md:border-bbuilds-yellow md:border transition duration-200\\"\\n\\t\\t>\\n\\t\\t\\t<ul class=\\"list-none overflow-hidden w-full\\">\\n\\t\\t\\t\\t{#each children as item}\\n\\t\\t\\t\\t\\t<li class=\\"menu-item\\">\\n\\t\\t\\t\\t\\t\\t<a\\n\\t\\t\\t\\t\\t\\t\\thref={item.href}\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"flex py-2 px-4 mb-0 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black\\"\\n\\t\\t\\t\\t\\t\\t\\t>{item.title}</a\\n\\t\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t</li>\\n\\t\\t\\t\\t{/each}\\n\\t\\t\\t</ul>\\n\\t\\t</div>\\n\\t{/if}\\n</a>\\n\\n<style>a {\\n  font-size: 1.563rem;\\n}\\n@media (min-width: 768px) {\\n  a {\\n    font-size: 1rem;\\n    margin-bottom: 0px;\\n  }\\n  .dropdown-menu {\\n    min-width: 22.5rem;\\n    visibility: hidden;\\n    opacity: 0;\\n  }\\n}\\n.active {\\n  --tw-text-opacity: 1;\\n  color: rgba(255, 205, 103, var(--tw-text-opacity));\\n}</style>\\n"],"names":[],"mappings":"AA0CO,CAAC,aAAC,CAAC,AACR,SAAS,CAAE,QAAQ,AACrB,CAAC,AACD,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AACzB,CAAC,aAAC,CAAC,AACD,SAAS,CAAE,IAAI,CACf,aAAa,CAAE,GAAG,AACpB,CAAC,AACD,cAAc,aAAC,CAAC,AACd,SAAS,CAAE,OAAO,CAClB,UAAU,CAAE,MAAM,CAClB,OAAO,CAAE,CAAC,AACZ,CAAC,AACH,CAAC,AACD,OAAO,aAAC,CAAC,AACP,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AACpD,CAAC"}`
+var css$f = {
+  code: "a.svelte-1kfcpjv{font-size:1.25rem}@media(min-width: 768px){a.svelte-1kfcpjv{font-size:1rem}.dropdown-menu.svelte-1kfcpjv{min-width:22.5rem;visibility:hidden;opacity:0}}a.active.svelte-1kfcpjv{--tw-text-opacity:1;color:rgba(255, 205, 103, var(--tw-text-opacity))}",
+  map: `{"version":3,"file":"NavItem.svelte","sources":["NavItem.svelte"],"sourcesContent":["<script>\\n\\timport { page } from '$app/stores';\\n\\n\\texport let navItem;\\n\\n\\tconst { href, title, children } = navItem;\\n<\/script>\\n\\n<a\\n\\tclass:active={$page.path === href}\\n\\t{href}\\n\\n\\ton:click\\n\\tclass=\\"text-bbuilds-teal hover:text-bbuilds-yellow\\"\\n>\\n\\t{title}\\n</a>\\n{#if children}\\n\\t<div\\n\\t\\tclass=\\"dropdown-menu md:absolute md:z-50 md:rounded  md:shadow-lg md:bg-bbuilds-black md:text-white md:border-bbuilds-yellow md:border transition duration-200\\"\\n\\t>\\n\\t\\t<ul class=\\"list-none overflow-hidden w-full\\">\\n\\t\\t\\t{#each children as item}\\n\\t\\t\\t\\t<li class=\\"menu-item\\">\\n\\t\\t\\t\\t\\t<a\\n\\t\\t\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t\\tclass:active={$page.path === item.href}\\n\\t\\t\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t\\thref={item.href}\\n\\t\\t\\t\\t\\t\\tclass=\\"flex text-bbuilds-teal py-2 px-4 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black\\"\\n\\t\\t\\t\\t\\t\\t>{item.title}</a\\n\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t</li>\\n\\t\\t\\t{/each}\\n\\t\\t</ul>\\n\\t</div>\\n{/if}\\n\\n<style>a {\\n  font-size: 1.25rem;\\n}\\n@media (min-width: 768px) {\\n  a {\\n    font-size: 1rem;\\n  }\\n  .dropdown-menu {\\n    min-width: 22.5rem;\\n    visibility: hidden;\\n    opacity: 0;\\n  }\\n}\\na.active {\\n  --tw-text-opacity: 1;\\n  color: rgba(255, 205, 103, var(--tw-text-opacity));\\n}</style>\\n"],"names":[],"mappings":"AAsCO,CAAC,eAAC,CAAC,AACR,SAAS,CAAE,OAAO,AACpB,CAAC,AACD,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AACzB,CAAC,eAAC,CAAC,AACD,SAAS,CAAE,IAAI,AACjB,CAAC,AACD,cAAc,eAAC,CAAC,AACd,SAAS,CAAE,OAAO,CAClB,UAAU,CAAE,MAAM,CAClB,OAAO,CAAE,CAAC,AACZ,CAAC,AACH,CAAC,AACD,CAAC,OAAO,eAAC,CAAC,AACR,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AACpD,CAAC"}`
 };
 var NavItem = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let isActivePage;
   let $page, $$unsubscribe_page;
   $$unsubscribe_page = subscribe(page, (value) => $page = value);
   let { navItem } = $$props;
-  const { href, isHighlighted, title: title2, children } = navItem;
+  const { href, title: title2, children } = navItem;
   if ($$props.navItem === void 0 && $$bindings.navItem && navItem !== void 0)
     $$bindings.navItem(navItem);
-  $$result.css.add(css$d);
-  isActivePage = $page.path === "/" ? /\/$/.test(href) : href.indexOf($page.path) >= 0;
+  $$result.css.add(css$f);
   $$unsubscribe_page();
-  return `<a${add_attribute("href", href, 0)} sveltekit:prefetch class="${[
-    "text-bbuilds-teal hover:text-bbuilds-yellow mb-4 svelte-aoksc",
-    (isActivePage ? "active" : "") + " " + (isHighlighted ? "highlighted" : "")
-  ].join(" ").trim()}">${escape2(title2)}
-
-	${children ? `<div class="${"dropdown-menu md:absolute md:z-50 md:rounded  md:shadow-lg md:bg-bbuilds-black md:text-white md:border-bbuilds-yellow md:border transition duration-200 svelte-aoksc"}"><ul class="${"list-none overflow-hidden w-full"}">${each(children, (item) => `<li class="${"menu-item"}"><a${add_attribute("href", item.href, 0)} class="${"flex py-2 px-4 mb-0 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black svelte-aoksc"}">${escape2(item.title)}</a>
-					</li>`)}</ul></div>` : ``}
-</a>`;
+  return `<a${add_attribute("href", href, 0)} class="${[
+    "text-bbuilds-teal hover:text-bbuilds-yellow svelte-1kfcpjv",
+    $page.path === href ? "active" : ""
+  ].join(" ").trim()}">${escape2(title2)}</a>
+${children ? `<div class="${"dropdown-menu md:absolute md:z-50 md:rounded  md:shadow-lg md:bg-bbuilds-black md:text-white md:border-bbuilds-yellow md:border transition duration-200 svelte-1kfcpjv"}"><ul class="${"list-none overflow-hidden w-full"}">${each(children, (item) => `<li class="${"menu-item"}"><a${add_attribute("href", item.href, 0)} class="${[
+    "flex text-bbuilds-teal py-2 px-4 transition duration-300 hover:bg-bbuilds-yellow hover:text-bbuilds-black svelte-1kfcpjv",
+    $page.path === item.href ? "active" : ""
+  ].join(" ").trim()}">${escape2(item.title)}</a>
+				</li>`)}</ul></div>` : ``}`;
 });
 var subscriber_queue2 = [];
 function writable2(value, start = noop2) {
@@ -4016,12 +4134,13 @@ var SocialMedia = create_ssr_component(($$result, $$props, $$bindings, slots) =>
       icon: '<svg aria-hidden="true" focusable="false" class="svg linkedin" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg>'
     }
   ];
-  return `<ul class="${"flex"}">${each(socialItems, (link) => `<li class="${"mr-2"}"><a${add_attribute("href", link.href, 0)} target="${"_blank"}" class="${"block transition duration-300 ease-in-out transform hover:-translate-y-1 text-bbuilds-teal w-6"}"><!-- HTML_TAG_START -->${link.icon}<!-- HTML_TAG_END --></a>
+  return `<ul class="${"flex"}">${each(socialItems, (link) => `<li class="${"mr-2"}"><a${add_attribute("href", link.href, 0)} target="${"_blank"}" class="${"block transition duration-300 ease-in-out transform hover:-translate-y-1 text-bbuilds-teal w-6"}" rel="${"noopener noreferrer"}"><!-- HTML_TAG_START -->${link.icon}<!-- HTML_TAG_END -->
+				<span class="${"sr-only"}">${escape2(`Link to Branden Builds ${link.label}`)}</span></a>
 		</li>`)}</ul>`;
 });
-var css$c = {
+var css$e = {
   code: "@media(min-width: 768px){.nav-items.svelte-7fwtyx{display:none}}",
-  map: `{"version":3,"file":"MobileMenu.svelte","sources":["MobileMenu.svelte"],"sourcesContent":["<script>\\n\\timport { onMount } from 'svelte';\\n\\timport { fly } from 'svelte/transition';\\n\\n\\timport { showHideOverflowY } from '$lib/utils/overflowY';\\n\\n\\timport NavItem from './NavItem.svelte';\\n\\timport {mobileMenuState} from './state';\\n\\timport SocialMedia from './SocialMedia.svelte';\\n\\n\\texport let navItems = [];\\n\\n\\tonMount(() => {\\n\\t\\tconst handleTabletChange = (e) => {\\n\\t\\t\\tif (e.matches) {\\n\\t\\t\\t\\t$mobileMenuState = false;\\n\\t\\t\\t\\tshowHideOverflowY(false);\\n\\t\\t\\t}\\n\\t\\t};\\n\\t\\tlet query = window.matchMedia('(min-width: 768px)');\\n\\t\\tquery.addEventListener('change', handleTabletChange);\\n\\t});\\n<\/script>\\n\\n{#if $mobileMenuState}\\n\\t<div\\n\\t\\tclass=\\"nav-items absolute flex flex-col px-4 pt-8 pb-20 overflow-y-scroll w-screen h-screen space-y-xx-small bg-bbuilds-black z-10 border-t border-bbuilds-yellow\\"\\n\\t\\ttransition:fly=\\"{{duration: 200, y: 20, opacity: 0.5}}\\">\\n\\t\\t{#each navItems as navItem}\\n\\t\\t\\t<NavItem\\n\\t\\t\\t\\t{navItem}\\n\\t\\t\\t\\ton:click={() => {\\n\\t\\t\\t\\t\\t$mobileMenuState = !$mobileMenuState;\\n\\t\\t\\t\\t\\tshowHideOverflowY(false);\\n\\t\\t\\t\\t}}\\n\\t\\t\\t/>\\n\\t\\t{/each}\\n\\t\\t<SocialMedia />\\n\\t</div>\\n{/if}\\n\\n<style>@media (min-width: 768px) {\\n  .nav-items {\\n    display: none;\\n  }\\n}</style>\\n"],"names":[],"mappings":"AAyCO,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AAChC,UAAU,cAAC,CAAC,AACV,OAAO,CAAE,IAAI,AACf,CAAC,AACH,CAAC"}`
+  map: `{"version":3,"file":"MobileMenu.svelte","sources":["MobileMenu.svelte"],"sourcesContent":["<script>\\n\\timport { onMount } from 'svelte';\\n\\timport { fly } from 'svelte/transition';\\n\\n\\timport { showHideOverflowY } from '$lib/utils/overflowY';\\n\\n\\timport NavItem from './NavItem.svelte';\\n\\timport { mobileMenuState } from './state';\\n\\timport SocialMedia from './SocialMedia.svelte';\\n\\n\\texport let navItems = [];\\n\\n\\tonMount(() => {\\n\\t\\tconst handleTabletChange = (e) => {\\n\\t\\t\\tif (e.matches) {\\n\\t\\t\\t\\t$mobileMenuState = false;\\n\\t\\t\\t\\tshowHideOverflowY(false);\\n\\t\\t\\t}\\n\\t\\t};\\n\\t\\tlet query = window.matchMedia('(min-width: 768px)');\\n\\t\\tquery.addEventListener('change', handleTabletChange);\\n\\t});\\n<\/script>\\n\\n{#if $mobileMenuState}\\n\\t<ul\\n\\t\\tclass=\\"nav-items absolute flex flex-col px-4 pt-8 pb-20 overflow-y-scroll w-screen h-screen space-y-xx-small bg-bbuilds-black z-10 border-t border-bbuilds-yellow\\"\\n\\t\\ttransition:fly={{ duration: 200, y: 20, opacity: 0.5 }}\\n\\t>\\n\\t\\t{#each navItems as navItem}\\n\\t\\t\\t<li\\n\\t\\t\\t\\tclass=\\"menu-item group mb-4\\"\\n\\t\\t\\t\\ton:click={() => {\\n\\t\\t\\t\\t\\t$mobileMenuState = !$mobileMenuState;\\n\\t\\t\\t\\t\\tshowHideOverflowY(false);\\n\\t\\t\\t\\t}}\\n\\t\\t\\t>\\n\\t\\t\\t\\t<NavItem {navItem} />\\n\\t\\t\\t</li>\\n\\t\\t{/each}\\n\\t\\t<div class=\\"mt-4\\"><SocialMedia /></div>\\n\\t</ul>\\n{/if}\\n\\n<style>@media (min-width: 768px) {\\n  .nav-items {\\n    display: none;\\n  }\\n}</style>\\n"],"names":[],"mappings":"AA4CO,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AAChC,UAAU,cAAC,CAAC,AACV,OAAO,CAAE,IAAI,AACf,CAAC,AACH,CAAC"}`
 };
 var MobileMenu = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $mobileMenuState, $$unsubscribe_mobileMenuState;
@@ -4029,19 +4148,20 @@ var MobileMenu = create_ssr_component(($$result, $$props, $$bindings, slots) => 
   let { navItems = [] } = $$props;
   if ($$props.navItems === void 0 && $$bindings.navItems && navItems !== void 0)
     $$bindings.navItems(navItems);
-  $$result.css.add(css$c);
+  $$result.css.add(css$e);
   $$unsubscribe_mobileMenuState();
-  return `${$mobileMenuState ? `<div class="${"nav-items absolute flex flex-col px-4 pt-8 pb-20 overflow-y-scroll w-screen h-screen space-y-xx-small bg-bbuilds-black z-10 border-t border-bbuilds-yellow svelte-7fwtyx"}">${each(navItems, (navItem) => `${validate_component(NavItem, "NavItem").$$render($$result, { navItem }, {}, {})}`)}
-		${validate_component(SocialMedia, "SocialMedia").$$render($$result, {}, {}, {})}</div>` : ``}`;
+  return `${$mobileMenuState ? `<ul class="${"nav-items absolute flex flex-col px-4 pt-8 pb-20 overflow-y-scroll w-screen h-screen space-y-xx-small bg-bbuilds-black z-10 border-t border-bbuilds-yellow svelte-7fwtyx"}">${each(navItems, (navItem) => `<li class="${"menu-item group mb-4"}">${validate_component(NavItem, "NavItem").$$render($$result, { navItem }, {}, {})}
+			</li>`)}
+		<div class="${"mt-4"}">${validate_component(SocialMedia, "SocialMedia").$$render($$result, {}, {}, {})}</div></ul>` : ``}`;
 });
-var css$b = {
+var css$d = {
   code: "@media(min-width: 768px){button.svelte-1fguiqf{display:none}}",
   map: `{"version":3,"file":"Toggle.svelte","sources":["Toggle.svelte"],"sourcesContent":["<script>\\n\\timport { showHideOverflowY } from '$lib/utils/overflowY';\\n\\n\\timport {mobileMenuState} from './state';\\n\\n\\tconst handleToggle = () => {\\n\\t\\t$mobileMenuState = !$mobileMenuState;\\n\\t\\tif ($mobileMenuState) {\\n\\t\\t\\tshowHideOverflowY(true);\\n\\t\\t} else {\\n\\t\\t\\tshowHideOverflowY(false);\\n\\t\\t}\\n\\t};\\n<\/script>\\n\\n<button\\n\\ton:click={handleToggle}\\n\\taria-label=\\"Show / hide nav items\\"\\n\\tclass=\\"flex justify-center items-center h-8 w-12 rounded-xl bg-bbuilds-teal ml-auto\\"\\n>\\n\\t{#if $mobileMenuState}\\n\\t\\t<svg xmlns=\\"http://www.w3.org/2000/svg\\" fill=\\"none\\" width=\\"12\\" height=\\"12\\" viewBox=\\"0 0 12 12\\">\\n\\t\\t\\t<path\\n\\t\\t\\t\\tfill=\\"#292929\\"\\n\\t\\t\\t\\tfill-rule=\\"evenodd\\"\\n\\t\\t\\t\\td=\\"M10.242 11.657a1 1 0 001.414-1.414L7.413 6l4.243-4.243A1 1 0 0010.242.343L5.999 4.586 1.757.343A1 1 0 10.342 1.757L4.585 6 .342 10.243a1 1 0 001.415 1.414l4.242-4.243 4.243 4.243z\\"\\n\\t\\t\\t\\tclip-rule=\\"evenodd\\"\\n\\t\\t\\t/>\\n\\t\\t</svg>\\n\\t{:else}\\n\\t\\t<svg width=\\"16\\" height=\\"8\\" viewBox=\\"0 0 16 8\\" fill=\\"none\\" xmlns=\\"http://www.w3.org/2000/svg\\">\\n\\t\\t\\t<rect width=\\"16\\" height=\\"2\\" rx=\\"1\\" fill=\\"#292929\\" />\\n\\t\\t\\t<rect y=\\"6\\" width=\\"16\\" height=\\"2\\" rx=\\"1\\" fill=\\"#292929\\" />\\n\\t\\t</svg>\\n\\t{/if}\\n</button>\\n\\n<style>@media (min-width: 768px) {\\n  button {\\n    display: none;\\n  }\\n}</style>\\n"],"names":[],"mappings":"AAqCO,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AAChC,MAAM,eAAC,CAAC,AACN,OAAO,CAAE,IAAI,AACf,CAAC,AACH,CAAC"}`
 };
 var Toggle = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $mobileMenuState, $$unsubscribe_mobileMenuState;
   $$unsubscribe_mobileMenuState = subscribe(mobileMenuState, (value) => $mobileMenuState = value);
-  $$result.css.add(css$b);
+  $$result.css.add(css$d);
   $$unsubscribe_mobileMenuState();
   return `<button aria-label="${"Show / hide nav items"}" class="${"flex justify-center items-center h-8 w-12 rounded-xl bg-bbuilds-teal ml-auto svelte-1fguiqf"}">${$mobileMenuState ? `<svg xmlns="${"http://www.w3.org/2000/svg"}" fill="${"none"}" width="${"12"}" height="${"12"}" viewBox="${"0 0 12 12"}"><path fill="${"#292929"}" fill-rule="${"evenodd"}" d="${"M10.242 11.657a1 1 0 001.414-1.414L7.413 6l4.243-4.243A1 1 0 0010.242.343L5.999 4.586 1.757.343A1 1 0 10.342 1.757L4.585 6 .342 10.243a1 1 0 001.415 1.414l4.242-4.243 4.243 4.243z"}" clip-rule="${"evenodd"}"></path></svg>` : `<svg width="${"16"}" height="${"8"}" viewBox="${"0 0 16 8"}" fill="${"none"}" xmlns="${"http://www.w3.org/2000/svg"}"><rect width="${"16"}" height="${"2"}" rx="${"1"}" fill="${"#292929"}"></rect><rect y="${"6"}" width="${"16"}" height="${"2"}" rx="${"1"}" fill="${"#292929"}"></rect></svg>`}
 </button>`;
@@ -4052,14 +4172,12 @@ var Icon = create_ssr_component(($$result, $$props, $$bindings, slots) => {
 var Name = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   return `<svg xmlns="${"http://www.w3.org/2000/svg"}" width="${"2454.945"}" height="${"286.805"}" viewBox="${"0 0 2454.945 286.805"}" class="${"logo-name"}"><g id="${"Group_77"}" data-name="${"Group 77"}" transform="${"translate(-5144.367 -337.6)"}"><path id="${"logo-b"}" data-name="${"logo-b"}" class="${"logo-letter fill-current logo-b"}" d="${"M5144.367,618.215V358.233h91.2q40.438,0,60.457,18.57t20.014,49.52a69.109,69.109,0,0,1-7.015,29.713q-7.023,14.856-24.761,24.347,26.4,10.32,35.284,28.061t8.872,33.84q0,33.02-20.634,54.472t-63.138,21.459Zm85.423-229.032h-52.409V471.3h54.885q27.235,0,38.172-9.7t10.936-31.156q0-21.452-13.412-31.362T5229.79,389.183Zm9.079,111.833h-61.488v86.248h62.726q29.3,0,41.473-10.935t12.174-31.982q0-21.047-12.587-32.188T5238.869,501.016Z"}"></path><path id="${"logo-r"}" data-name="${"logo-r"}" class="${"logo-letter fill-current logo-r"}" d="${"M5375.048,618.215V449.021h32.6v35.9q9.073-21.047,24.967-31.569a63.887,63.887,0,0,1,36.109-10.524,40.641,40.641,0,0,1,7.428.619c2.2.413,4.126.761,5.777,1.032v37.553q-6.606-1.237-13.412-2.064a112.106,112.106,0,0,0-13.411-.825q-25.178,0-36.315,15.682T5407.648,546v72.217Z"}"></path><path id="${"logo-a"}" data-name="${"logo-a"}" class="${"logo-letter fill-current logo-a"}" d="${"M5500.909,533.617q0-21.867,7.428-39t18.983-28.474a81.2,81.2,0,0,1,26-17.332,75.019,75.019,0,0,1,28.887-5.984q17.737,0,34.87,9.7t27.03,29.093v-32.6h33.014V618.215H5644.1v-32.6q-9.9,19.4-27.03,29.093t-34.87,9.7a75.019,75.019,0,0,1-28.887-5.984,80.989,80.989,0,0,1-26-17.332q-11.559-11.346-18.983-28.474T5500.909,533.617Zm87.073-59.836q-24.354,0-38.791,17.332t-14.443,42.5q0,25.176,14.443,42.506t38.791,17.332q23.522,0,40.235-15.682t16.713-44.156q0-28.473-16.506-44.155T5587.982,473.781Z"}"></path><path id="${"logo-n"}" data-name="${"logo-n"}" class="${"logo-letter fill-current logo-n"}" d="${"M5739.018,618.215V449.021h33.013v37.552q9.073-22.284,26.205-33.013a68.309,68.309,0,0,1,36.934-10.73q27.642,0,44.568,19.6t16.919,55.5V618.215h-33.013V526.189q0-24.759-9.492-38.584t-30.537-13.824q-22.285,0-36.934,16.094t-14.65,48.282v80.058Z"}"></path><path id="${"logo-d"}" data-name="${"logo-d"}" class="${"logo-letter fill-current logo-d"}" d="${"M5944.112,533.617q0-21.867,7.221-39t18.364-28.474a77.31,77.31,0,0,1,25.379-17.332,72.579,72.579,0,0,1,28.268-5.984q18.154,0,35.9,9.7t28.062,29.506V337.6h33.013V618.215h-33.013V585.2q-10.32,19.808-28.062,29.506t-35.9,9.7a72.579,72.579,0,0,1-28.268-5.984,77.113,77.113,0,0,1-25.379-17.332q-11.142-11.346-18.364-28.474T5944.112,533.617Zm87.073-59.836q-24.354,0-38.791,17.332t-14.444,42.5q0,25.176,14.444,42.506t38.791,17.332q23.928,0,40.441-15.682t16.507-44.156q0-28.473-16.713-44.155T6031.185,473.781Z"}"></path><path id="${"logo-e"}" data-name="${"logo-e"}" class="${"logo-letter fill-current logo-e"}" d="${"M6257.326,624.405q-20.225,0-36.521-6.809a76.624,76.624,0,0,1-27.443-18.983,86.97,86.97,0,0,1-17.332-28.887,103.136,103.136,0,0,1-6.19-36.109,99.669,99.669,0,0,1,6.6-36.933A84.822,84.822,0,0,1,6194.806,468a83.013,83.013,0,0,1,27.649-18.57,88.971,88.971,0,0,1,34.458-6.6q36.309,0,60.044,23.729t23.728,62.932q0,3.307-.206,6.6t-.619,6.19H6204.092q2.06,24.354,16.094,38.79,14.024,14.451,37.14,14.444,17.332,0,29.919-7.841t16.3-20.633h33.839q-7.427,26-28.268,41.679T6257.326,624.405Zm-.413-152.688q-20.223,0-33.838,10.936T6205.33,515.46h101.1q-1.655-21.047-15.269-32.4T6256.913,471.717Z"}"></path><path id="${"logo-n2"}" data-name="${"logo-n2"}" class="${"logo-letter fill-current logo-n2"}" d="${"M6391.03,618.215V449.021h33.013v37.552q9.072-22.284,26.205-33.013a68.305,68.305,0,0,1,36.933-10.73q27.643,0,44.569,19.6t16.919,55.5V618.215h-33.013V526.189q0-24.759-9.492-38.584t-30.537-13.824q-22.284,0-36.934,16.094t-14.65,48.282v80.058Z"}"></path><path id="${"logo-b2"}" data-name="${"logo-b2"}" class="${"logo-letter fill-current logo-b2"}" d="${"M6609.741,618.215V358.233h91.2q40.438,0,60.456,18.57t20.014,49.52a69.1,69.1,0,0,1-7.015,29.713q-7.022,14.856-24.76,24.347,26.4,10.32,35.283,28.061t8.872,33.84q0,33.02-20.633,54.472t-63.139,21.459Zm85.423-229.032h-52.409V471.3h54.885q27.237,0,38.172-9.7t10.936-31.156q0-21.452-13.412-31.362T6695.164,389.183Zm9.079,111.833h-61.488v86.248h62.726q29.3,0,41.473-10.935t12.174-31.982q0-21.047-12.587-32.188T6704.243,501.016Z"}"></path><path id="${"logo-u"}" data-name="${"logo-u"}" class="${"logo-letter fill-current logo-u"}" d="${"M6870.547,449.021v101.1q0,20.638,8.46,31.981t27.442,11.349q20.631,0,34.045-16.1t13.412-48.282V449.021h33.014V618.215h-33.014V581.9q-8.667,21.877-24.76,32.188a63.775,63.775,0,0,1-35.077,10.317q-25.176,0-40.854-17.332t-15.682-48.7V449.021Z"}"></path><path id="${"logo-i"}" data-name="${"logo-i"}" class="${"logo-letter fill-current logo-i"}" d="${"M7048.816,618.215V449.021h33.013V618.215Z"}"></path><path id="${"logo-l"}" data-name="${"logo-l"}" class="${"logo-letter fill-current logo-l"}" d="${"M7143.728,618.215V337.6h33.014V618.215Z"}"></path><path id="${"logo-d2"}" data-name="${"logo-d2"}" class="${"logo-letter fill-current logo-d2"}" d="${"M7227.086,533.617q0-21.867,7.222-39t18.363-28.474a77.317,77.317,0,0,1,25.38-17.332,72.578,72.578,0,0,1,28.267-5.984q18.155,0,35.9,9.7t28.061,29.506V337.6H7403.3V618.215h-33.014V585.2q-10.321,19.808-28.061,29.506t-35.9,9.7a72.578,72.578,0,0,1-28.267-5.984,77.12,77.12,0,0,1-25.38-17.332q-11.142-11.346-18.363-28.474T7227.086,533.617Zm87.073-59.836q-24.354,0-38.791,17.332t-14.443,42.5q0,25.176,14.443,42.506t38.791,17.332q23.927,0,40.442-15.682t16.506-44.156q0-28.473-16.713-44.155T7314.159,473.781Z"}"></path><path id="${"logo-s"}" data-name="${"logo-s"}" class="${"logo-letter fill-current logo-s"}" d="${"M7593.535,499.366h-33.427q-.415-14.025-10.316-21.665t-27.649-7.634q-15.273,0-24.348,5.364t-9.079,14.856a16.768,16.768,0,0,0,7.635,14.443,57.128,57.128,0,0,0,19.189,8.254l41.267,9.9a74.726,74.726,0,0,1,29.919,14.237q12.582,10.117,12.586,30.744,0,23.523-18.983,40.029t-52.409,16.507q-32.188,0-54.473-16.919t-22.7-44.156h33.426q1.644,17.332,14.031,25.585t30.95,8.254q17.739,0,26.824-7.015t9.079-16.92A16.413,16.413,0,0,0,7557.632,559q-7.427-5.154-18.983-8.046l-35.489-8.666a81.186,81.186,0,0,1-32.188-15.476q-14.45-11.344-14.444-33.632,0-22.69,17.539-36.521t48.489-13.825q31.771,0,50.758,14.65T7593.535,499.366Z"}"></path><rect id="${"logo-i-dot"}" data-name="${"logo-i-dot"}" class="${"logo-letter fill-current logo-i-dot"}" width="${"39.642"}" height="${"39.642"}" transform="${"translate(7045.502 373.739)"}"></rect></g></svg>`;
 });
-var css$a = {
-  code: ".logo .logo-name{display:none;--tw-text-opacity:1;color:rgba(230, 231, 232, var(--tw-text-opacity));height:auto}.logo .logo-icon{height:auto;max-width:25px;min-width:25px}.logo .logo-icon-left-bar{--tw-text-opacity:1;color:rgba(230, 231, 232, var(--tw-text-opacity))}.logo .logo-icon-square{--tw-text-opacity:1;color:rgba(255, 205, 103, var(--tw-text-opacity))}.logo .logo-icon-box{--tw-text-opacity:1;color:rgba(1, 253, 246, var(--tw-text-opacity))}.logo.svelte-1lg21q5{max-width:25%}@media(min-width: 768px){.logo .logo-name{display:block;max-width:25rem}.logo .logo-icon{margin-right:0.5rem}.menu-item:hover .dropdown-menu, .menu-item:focus-within .dropdown-menu{visibility:visible;opacity:1}}@media(min-width: 1024px){.logo.svelte-1lg21q5{max-width:15%}}",
-  map: `{"version":3,"file":"Index.svelte","sources":["Index.svelte"],"sourcesContent":["<script>\\n\\timport { page } from '$app/stores';\\n\\timport NavItem from './NavItem.svelte';\\n\\timport MobileMenu from './MobileMenu.svelte';\\n\\timport MobileMenuToggle from './Toggle.svelte';\\n\\timport SocialMedia from './SocialMedia.svelte';\\n\\timport LogoIcon from '$lib/logo/Icon.svelte';\\n\\timport LogoName from '$lib/logo/Name.svelte';\\n\\timport { showHideOverflowY } from '$lib/utils/overflowY';\\n\\timport { mobileMenuState } from './state';\\n\\n\\tconst navItems = [\\n\\t\\t{\\n\\t\\t\\ttitle: 'Services',\\n\\t\\t\\thref: '/services',\\n\\t\\t\\tchildren: [\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Web Development',\\n\\t\\t\\t\\t\\thref: '/web-development'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Headless WordPress Development',\\n\\t\\t\\t\\t\\thref: '/headless-wordpress-development'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'WordPress Development',\\n\\t\\t\\t\\t\\thref: '/wordpress-development'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Search Engine Optimization',\\n\\t\\t\\t\\t\\thref: '/seo'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Storytelling / Branding',\\n\\t\\t\\t\\t\\thref: '/branding'\\n\\t\\t\\t\\t}\\n\\t\\t\\t]\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Blog',\\n\\t\\t\\thref: '/blog'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Contact',\\n\\t\\t\\thref: '/contact'\\n\\t\\t}\\n\\t];\\n<\/script>\\n\\n<header class=\\"bg-bbuilds-black w-full py-2 relative z-50\\" role=\\"banner\\">\\n\\t<nav id=\\"choose-project-observer-target-top\\" class=\\"mx-auto w-full\\">\\n\\t\\t<div class=\\"flex items-center h-12 px-4 sm:px-8\\">\\n\\t\\t\\t{#if $page.path !== '/'}\\n\\t\\t\\t\\t<a\\n\\t\\t\\t\\t\\thref=\\"/\\"\\n\\t\\t\\t\\t\\taria-label=\\"Branden Builds\\"\\n\\t\\t\\t\\t\\ton:click={() => {\\n\\t\\t\\t\\t\\t\\t$mobileMenuState = false;\\n\\t\\t\\t\\t\\t\\tshowHideOverflowY(false);\\n\\t\\t\\t\\t\\t}}\\n\\t\\t\\t\\t\\tclass=\\"flex items-center logo\\"\\n\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t<LogoIcon />\\n\\t\\t\\t\\t\\t<LogoName />\\n\\t\\t\\t\\t</a>\\n\\t\\t\\t{/if}\\n\\t\\t\\t<ul\\n\\t\\t\\t\\tclass=\\"nav-items hidden px-2 space-x-6 items-center md:flex md:space-x-12 ml-auto mr-auto\\"\\n\\t\\t\\t>\\n\\t\\t\\t\\t{#each navItems as navItem}\\n\\t\\t\\t\\t\\t<li class=\\"menu-item relative group\\"><NavItem {navItem} on:click={() => ($mobileMenuState = !$mobileMenuState)} /></li>\\n\\t\\t\\t\\t{/each}\\n\\t\\t\\t</ul>\\n\\t\\t\\t<div class=\\"hidden md:flex\\">\\n\\t\\t\\t\\t<SocialMedia />\\n\\t\\t\\t</div>\\n\\t\\t\\t<MobileMenuToggle />\\n\\t\\t</div>\\n\\t\\t<MobileMenu {navItems} />\\n\\t</nav>\\n</header>\\n\\n<style>:global(.logo .logo-name) {\\n  display: none;\\n  --tw-text-opacity: 1;\\n  color: rgba(230, 231, 232, var(--tw-text-opacity));\\n  height: auto;\\n}\\n:global(.logo .logo-icon) {\\n  height: auto;\\n  max-width: 25px;\\n  min-width: 25px;\\n}\\n:global(.logo .logo-icon-left-bar) {\\n  --tw-text-opacity: 1;\\n  color: rgba(230, 231, 232, var(--tw-text-opacity));\\n}\\n:global(.logo .logo-icon-square) {\\n  --tw-text-opacity: 1;\\n  color: rgba(255, 205, 103, var(--tw-text-opacity));\\n}\\n:global(.logo .logo-icon-box) {\\n  --tw-text-opacity: 1;\\n  color: rgba(1, 253, 246, var(--tw-text-opacity));\\n}\\n.logo {\\n  max-width: 25%;\\n}\\n@media (min-width: 768px) {\\n  :global(.logo .logo-name) {\\n    display: block;\\n    max-width: 25rem;\\n  }\\n  :global(.logo .logo-icon) {\\n    margin-right: 0.5rem;\\n  }\\n  :global(.menu-item:hover .dropdown-menu, .menu-item:focus-within .dropdown-menu) {\\n    visibility: visible;\\n    opacity: 1;\\n  }\\n}\\n@media (min-width: 1024px) {\\n  .logo {\\n    max-width: 15%;\\n  }\\n}</style>\\n"],"names":[],"mappings":"AAkFe,gBAAgB,AAAE,CAAC,AAChC,OAAO,CAAE,IAAI,CACb,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,CAClD,MAAM,CAAE,IAAI,AACd,CAAC,AACO,gBAAgB,AAAE,CAAC,AACzB,MAAM,CAAE,IAAI,CACZ,SAAS,CAAE,IAAI,CACf,SAAS,CAAE,IAAI,AACjB,CAAC,AACO,yBAAyB,AAAE,CAAC,AAClC,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AACpD,CAAC,AACO,uBAAuB,AAAE,CAAC,AAChC,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AACpD,CAAC,AACO,oBAAoB,AAAE,CAAC,AAC7B,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AAClD,CAAC,AACD,KAAK,eAAC,CAAC,AACL,SAAS,CAAE,GAAG,AAChB,CAAC,AACD,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AACjB,gBAAgB,AAAE,CAAC,AACzB,OAAO,CAAE,KAAK,CACd,SAAS,CAAE,KAAK,AAClB,CAAC,AACO,gBAAgB,AAAE,CAAC,AACzB,YAAY,CAAE,MAAM,AACtB,CAAC,AACO,uEAAuE,AAAE,CAAC,AAChF,UAAU,CAAE,OAAO,CACnB,OAAO,CAAE,CAAC,AACZ,CAAC,AACH,CAAC,AACD,MAAM,AAAC,YAAY,MAAM,CAAC,AAAC,CAAC,AAC1B,KAAK,eAAC,CAAC,AACL,SAAS,CAAE,GAAG,AAChB,CAAC,AACH,CAAC"}`
+var css$c = {
+  code: ".logo .logo-name{display:none;--tw-text-opacity:1;color:rgba(230, 231, 232, var(--tw-text-opacity));height:auto}.logo .logo-icon{height:auto;max-width:25px;min-width:18px}.logo .logo-icon-left-bar{--tw-text-opacity:1;color:rgba(230, 231, 232, var(--tw-text-opacity))}.logo .logo-icon-square{--tw-text-opacity:1;color:rgba(255, 205, 103, var(--tw-text-opacity))}.logo .logo-icon-box{--tw-text-opacity:1;color:rgba(1, 253, 246, var(--tw-text-opacity))}.logo.svelte-gqopph{max-width:25%}@media(min-width: 768px){.logo .logo-name{display:block;max-width:25rem}.logo .logo-icon{margin-right:0.5rem}.menu-item:hover .dropdown-menu, .menu-item:focus-within .dropdown-menu{visibility:visible;opacity:1}}@media(min-width: 1024px){.logo.svelte-gqopph{max-width:15%}}",
+  map: `{"version":3,"file":"Index.svelte","sources":["Index.svelte"],"sourcesContent":["<script>\\n\\timport NavItem from './NavItem.svelte';\\n\\timport MobileMenu from './MobileMenu.svelte';\\n\\timport MobileMenuToggle from './Toggle.svelte';\\n\\timport SocialMedia from './SocialMedia.svelte';\\n\\timport LogoIcon from '$lib/logo/Icon.svelte';\\n\\timport LogoName from '$lib/logo/Name.svelte';\\n\\timport { showHideOverflowY } from '$lib/utils/overflowY';\\n\\timport { mobileMenuState } from './state';\\n\\n\\tconst navItems = [\\n\\t\\t{\\n\\t\\t\\ttitle: 'Services',\\n\\t\\t\\thref: '/services',\\n\\t\\t\\tchildren: [\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Web Development',\\n\\t\\t\\t\\t\\thref: '/web-development'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Headless WordPress Development',\\n\\t\\t\\t\\t\\thref: '/headless-wordpress-development'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'WordPress Development',\\n\\t\\t\\t\\t\\thref: '/wordpress-development'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Search Engine Optimization',\\n\\t\\t\\t\\t\\thref: '/seo'\\n\\t\\t\\t\\t},\\n\\t\\t\\t\\t{\\n\\t\\t\\t\\t\\ttitle: 'Storytelling / Branding',\\n\\t\\t\\t\\t\\thref: '/branding'\\n\\t\\t\\t\\t}\\n\\t\\t\\t]\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Blog',\\n\\t\\t\\thref: '/blog'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Contact',\\n\\t\\t\\thref: '/contact'\\n\\t\\t}\\n\\t];\\n\\t\\n<\/script>\\n\\n<header class=\\"bg-bbuilds-black w-full py-2 relative z-50\\" role=\\"banner\\">\\n\\t<nav id=\\"choose-project-observer-target-top\\" class=\\"mx-auto w-full\\">\\n\\t\\t<div class=\\"flex items-center h-12 px-4 sm:px-8\\">\\n\\n\\t\\t\\t<a\\n\\t\\t\\t\\thref=\\"/\\"\\n\\t\\t\\t\\taria-label=\\"Branden Builds\\"\\n\\t\\t\\t\\ton:click={() => {\\n\\t\\t\\t\\t\\t$mobileMenuState = false;\\n\\t\\t\\t\\t\\tshowHideOverflowY(false);\\n\\t\\t\\t\\t}}\\n\\n\\t\\t\\t\\tclass=\\"flex items-center logo\\"\\n\\t\\t\\t>\\n\\t\\t\\t\\t<LogoIcon />\\n\\t\\t\\t\\t<LogoName />\\n\\t\\t\\t</a>\\n\\t\\t\\t<ul\\n\\t\\t\\t\\tclass=\\"nav-items hidden px-2 space-x-6 items-center md:flex md:space-x-12 ml-auto mr-auto\\"\\n\\t\\t\\t>\\n\\t\\t\\t\\t{#each navItems as navItem}\\n\\t\\t\\t\\t\\t<li class=\\"menu-item relative group\\"><NavItem {navItem} on:click={() => ($mobileMenuState = !$mobileMenuState)} /></li>\\n\\t\\t\\t\\t{/each}\\n\\t\\t\\t</ul>\\n\\t\\t\\t<div class=\\"hidden md:flex\\">\\n\\t\\t\\t\\t<SocialMedia />\\n\\t\\t\\t</div>\\n\\t\\t\\t<MobileMenuToggle />\\n\\t\\t</div>\\n\\t\\t<MobileMenu {navItems} />\\n\\t</nav>\\n</header>\\n\\n<style>:global(.logo .logo-name) {\\n  display: none;\\n  --tw-text-opacity: 1;\\n  color: rgba(230, 231, 232, var(--tw-text-opacity));\\n  height: auto;\\n}\\n:global(.logo .logo-icon) {\\n  height: auto;\\n  max-width: 25px;\\n  min-width: 18px;\\n}\\n:global(.logo .logo-icon-left-bar) {\\n  --tw-text-opacity: 1;\\n  color: rgba(230, 231, 232, var(--tw-text-opacity));\\n}\\n:global(.logo .logo-icon-square) {\\n  --tw-text-opacity: 1;\\n  color: rgba(255, 205, 103, var(--tw-text-opacity));\\n}\\n:global(.logo .logo-icon-box) {\\n  --tw-text-opacity: 1;\\n  color: rgba(1, 253, 246, var(--tw-text-opacity));\\n}\\n.logo {\\n  max-width: 25%;\\n}\\n@media (min-width: 768px) {\\n  :global(.logo .logo-name) {\\n    display: block;\\n    max-width: 25rem;\\n  }\\n  :global(.logo .logo-icon) {\\n    margin-right: 0.5rem;\\n  }\\n  :global(.menu-item:hover .dropdown-menu, .menu-item:focus-within .dropdown-menu) {\\n    visibility: visible;\\n    opacity: 1;\\n  }\\n}\\n@media (min-width: 1024px) {\\n  .logo {\\n    max-width: 15%;\\n  }\\n}</style>\\n"],"names":[],"mappings":"AAkFe,gBAAgB,AAAE,CAAC,AAChC,OAAO,CAAE,IAAI,CACb,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,CAClD,MAAM,CAAE,IAAI,AACd,CAAC,AACO,gBAAgB,AAAE,CAAC,AACzB,MAAM,CAAE,IAAI,CACZ,SAAS,CAAE,IAAI,CACf,SAAS,CAAE,IAAI,AACjB,CAAC,AACO,yBAAyB,AAAE,CAAC,AAClC,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AACpD,CAAC,AACO,uBAAuB,AAAE,CAAC,AAChC,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AACpD,CAAC,AACO,oBAAoB,AAAE,CAAC,AAC7B,iBAAiB,CAAE,CAAC,CACpB,KAAK,CAAE,KAAK,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,iBAAiB,CAAC,CAAC,AAClD,CAAC,AACD,KAAK,cAAC,CAAC,AACL,SAAS,CAAE,GAAG,AAChB,CAAC,AACD,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AACjB,gBAAgB,AAAE,CAAC,AACzB,OAAO,CAAE,KAAK,CACd,SAAS,CAAE,KAAK,AAClB,CAAC,AACO,gBAAgB,AAAE,CAAC,AACzB,YAAY,CAAE,MAAM,AACtB,CAAC,AACO,uEAAuE,AAAE,CAAC,AAChF,UAAU,CAAE,OAAO,CACnB,OAAO,CAAE,CAAC,AACZ,CAAC,AACH,CAAC,AACD,MAAM,AAAC,YAAY,MAAM,CAAC,AAAC,CAAC,AAC1B,KAAK,cAAC,CAAC,AACL,SAAS,CAAE,GAAG,AAChB,CAAC,AACH,CAAC"}`
 };
 var Index = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $page, $$unsubscribe_page;
   let $$unsubscribe_mobileMenuState;
-  $$unsubscribe_page = subscribe(page, (value) => $page = value);
   $$unsubscribe_mobileMenuState = subscribe(mobileMenuState, (value) => value);
   const navItems = [
     {
@@ -4091,11 +4209,10 @@ var Index = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     { title: "Blog", href: "/blog" },
     { title: "Contact", href: "/contact" }
   ];
-  $$result.css.add(css$a);
-  $$unsubscribe_page();
+  $$result.css.add(css$c);
   $$unsubscribe_mobileMenuState();
-  return `<header class="${"bg-bbuilds-black w-full py-2 relative z-50"}" role="${"banner"}"><nav id="${"choose-project-observer-target-top"}" class="${"mx-auto w-full"}"><div class="${"flex items-center h-12 px-4 sm:px-8"}">${$page.path !== "/" ? `<a href="${"/"}" aria-label="${"Branden Builds"}" class="${"flex items-center logo svelte-1lg21q5"}">${validate_component(Icon, "LogoIcon").$$render($$result, {}, {}, {})}
-					${validate_component(Name, "LogoName").$$render($$result, {}, {}, {})}</a>` : ``}
+  return `<header class="${"bg-bbuilds-black w-full py-2 relative z-50"}" role="${"banner"}"><nav id="${"choose-project-observer-target-top"}" class="${"mx-auto w-full"}"><div class="${"flex items-center h-12 px-4 sm:px-8"}"><a href="${"/"}" aria-label="${"Branden Builds"}" class="${"flex items-center logo svelte-gqopph"}">${validate_component(Icon, "LogoIcon").$$render($$result, {}, {}, {})}
+				${validate_component(Name, "LogoName").$$render($$result, {}, {}, {})}</a>
 			<ul class="${"nav-items hidden px-2 space-x-6 items-center md:flex md:space-x-12 ml-auto mr-auto"}">${each(navItems, (navItem) => `<li class="${"menu-item relative group"}">${validate_component(NavItem, "NavItem").$$render($$result, { navItem }, {}, {})}</li>`)}</ul>
 			<div class="${"hidden md:flex"}">${validate_component(SocialMedia, "SocialMedia").$$render($$result, {}, {}, {})}</div>
 			${validate_component(Toggle, "MobileMenuToggle").$$render($$result, {}, {}, {})}</div>
@@ -4103,7 +4220,7 @@ var Index = create_ssr_component(($$result, $$props, $$bindings, slots) => {
 </header>`;
 });
 var Footer = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `<footer class="${"bg-bbuilds-black w-full pt-4 pb-6"}"><div class="${"container mx-auto px-4"}"><p class="${"text-center text-bbuilds-gray"}">Copyright \xA9 ${escape2(new Date().getFullYear())} Branden Builds LLC. <a href="${"/sitemap.xml"}">Sitemap</a></p></div></footer>`;
+  return `<footer class="${"bg-bbuilds-black w-full pt-4 pb-6"}"><div class="${"container mx-auto px-4"}"><p class="${"text-center text-bbuilds-gray"}">Copyright \xA9 ${escape2(new Date().getFullYear())} Branden Builds LLC. <a href="${"/sitemap.xml"}" target="${"_blank"}" rel="${"external"}">Sitemap</a></p></div></footer>`;
 });
 var _layout = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   return `${validate_component(Index, "Nav").$$render($$result, {}, {}, {})}
@@ -4115,17 +4232,17 @@ var __layout = /* @__PURE__ */ Object.freeze({
   [Symbol.toStringTag]: "Module",
   "default": _layout
 });
-var css$9 = {
+var css$b = {
   code: ".step.svelte-17h80dv{opacity:.05}.active.svelte-17h80dv{animation:svelte-17h80dv-fadeIn linear 2s;opacity:.4}@keyframes svelte-17h80dv-fadeIn{0%{opacity:.05}50%{opacity:1}100%{opacity:.40}}",
   map: `{"version":3,"file":"brandcube.svelte","sources":["brandcube.svelte"],"sourcesContent":["<script>\\n\\timport { onMount } from 'svelte';\\n\\n\\tonMount(() => {\\n\\t\\tconst steps = document.querySelectorAll('.step');\\n\\t\\tlet stepsArray = Array.prototype.slice.call(steps, 0);\\n\\t\\tstepsArray = stepsArray.sort(function (a, b) {\\n\\t\\t\\treturn a.id - b.id;\\n\\t\\t});\\n\\n\\t\\tstepsArray.forEach((step, i) => {\\n\\t\\t\\tsetTimeout(() => {\\n\\t\\t\\t\\tstep.classList.add('active')\\n\\t\\t\\t}, i * 2050);\\n\\t\\t});\\n\\t});\\n<\/script>\\n\\n<svg\\n\\txmlns=\\"http://www.w3.org/2000/svg\\"\\n\\twidth=\\"745.156\\"\\n\\theight=\\"556.508\\"\\n\\tviewBox=\\"0 0 745.156 556.508\\"\\n\\t><g transform=\\"translate(-354.862 -2738.079)\\">\\n\\t\\t<path\\n\\t\\t\\tid=\\"9\\"\\n\\t\\t\\tclass=\\"step square center transition duration-300 ease-in-out\\"\\n\\t\\t\\td=\\"M666.154,2955.047h-94.36v122.572H694.3V2955.047Zm0,94.43H599.937v-66.288h66.217Z\\"\\n\\t\\t\\tfill=\\"#01fdf6\\"\\n\\t\\t/>\\n\\t\\t<path\\n\\t\\t\\tid=\\"3\\"\\n\\t\\t\\tclass=\\"step square top-right transition duration-300 ease-in-out\\"\\n\\t\\t\\td=\\"M883.086,2738.079h-94.36v122.573h122.5V2738.079Zm0,94.43H816.869v-66.287h66.217Z\\"\\n\\t\\t\\tfill=\\"#01fdf6\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"10\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(618.974 2832.474)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"4\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(835.906 2860.652)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/><path\\n\\t\\t\\tid=\\"7\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\td=\\"M816.868,3294.587h94.36V3172.014h-122.5v122.573Zm0-94.431h66.218v66.288H816.868Z\\"\\n\\t\\t\\tfill=\\"#01fdf6\\"\\n\\t\\t/><rect\\n\\t\\t\\tid=\\"6\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(864.048 3172.014) rotate(180)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/><rect\\n\\t\\t\\tid=\\"12\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(618.974 3077.619)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/><rect\\n\\t\\t\\tid=\\"8\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(816.869 3002.262) rotate(90)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/><rect\\n\\t\\t\\tid=\\"18\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(571.794 3002.262) rotate(90)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/><rect\\n\\t\\t\\tid=\\"11\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"66.217\\"\\n\\t\\t\\theight=\\"66.217\\"\\n\\t\\t\\ttransform=\\"translate(666.154 2766.257) rotate(90)\\"\\n\\t\\t\\tfill=\\"#ffcd67\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"5\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"66.217\\"\\n\\t\\t\\theight=\\"66.217\\"\\n\\t\\t\\ttransform=\\"translate(883.086 2983.224) rotate(90)\\"\\n\\t\\t\\tfill=\\"#ffcd67\\"\\n\\t\\t/><rect\\n\\t\\t\\tid=\\"16\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(430.184 3172.014) rotate(180)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"17\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"66.217\\"\\n\\t\\t\\theight=\\"66.217\\"\\n\\t\\t\\ttransform=\\"translate(449.222 2983.224) rotate(90)\\"\\n\\t\\t\\tfill=\\"#ffcd67\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"2\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(1033.801 2785.294) rotate(90)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"1\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out active\\"\\n\\t\\t\\twidth=\\"66.217\\"\\n\\t\\t\\theight=\\"66.217\\"\\n\\t\\t\\ttransform=\\"translate(1100.018 2766.257) rotate(90)\\"\\n\\t\\t\\tfill=\\"#ffcd67\\"\\n\\t\\t/>\\n\\t\\t<path\\n\\t\\t\\tid=\\"15\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\td=\\"M449.222,3172.014h-94.36v122.573h122.5V3172.014Zm0,94.43H383v-66.288h66.218Z\\"\\n\\t\\t\\tfill=\\"#01fdf6\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"14\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"28.142\\"\\n\\t\\t\\theight=\\"122.573\\"\\n\\t\\t\\ttransform=\\"translate(599.936 3219.229) rotate(90)\\"\\n\\t\\t\\tfill=\\"#e6e7e8\\"\\n\\t\\t/>\\n\\t\\t<rect\\n\\t\\t\\tid=\\"13\\"\\n\\t\\t\\tclass=\\"step transition duration-300 ease-in-out\\"\\n\\t\\t\\twidth=\\"66.217\\"\\n\\t\\t\\theight=\\"66.217\\"\\n\\t\\t\\ttransform=\\"translate(666.154 3200.192) rotate(90)\\"\\n\\t\\t\\tfill=\\"#ffcd67\\"\\n\\t\\t/>\\n\\t</g>\\n</svg>\\n\\n<style>.step {\\n  opacity: .05;\\n}\\n.active {\\n  animation: fadeIn linear 2s;\\n  opacity: .4;\\n}\\n@keyframes fadeIn {\\n  0% {\\n    opacity: .05;\\n  }\\n  50% {\\n    opacity: 1;\\n  }\\n  100% {\\n    opacity: .40;\\n  }\\n}</style>\\n"],"names":[],"mappings":"AA4JO,KAAK,eAAC,CAAC,AACZ,OAAO,CAAE,GAAG,AACd,CAAC,AACD,OAAO,eAAC,CAAC,AACP,SAAS,CAAE,qBAAM,CAAC,MAAM,CAAC,EAAE,CAC3B,OAAO,CAAE,EAAE,AACb,CAAC,AACD,WAAW,qBAAO,CAAC,AACjB,EAAE,AAAC,CAAC,AACF,OAAO,CAAE,GAAG,AACd,CAAC,AACD,GAAG,AAAC,CAAC,AACH,OAAO,CAAE,CAAC,AACZ,CAAC,AACD,IAAI,AAAC,CAAC,AACJ,OAAO,CAAE,GAAG,AACd,CAAC,AACH,CAAC"}`
 };
 var Brandcube = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  $$result.css.add(css$9);
+  $$result.css.add(css$b);
   return `<svg xmlns="${"http://www.w3.org/2000/svg"}" width="${"745.156"}" height="${"556.508"}" viewBox="${"0 0 745.156 556.508"}"><g transform="${"translate(-354.862 -2738.079)"}"><path id="${"9"}" class="${"step square center transition duration-300 ease-in-out svelte-17h80dv"}" d="${"M666.154,2955.047h-94.36v122.572H694.3V2955.047Zm0,94.43H599.937v-66.288h66.217Z"}" fill="${"#01fdf6"}"></path><path id="${"3"}" class="${"step square top-right transition duration-300 ease-in-out svelte-17h80dv"}" d="${"M883.086,2738.079h-94.36v122.573h122.5V2738.079Zm0,94.43H816.869v-66.287h66.217Z"}" fill="${"#01fdf6"}"></path><rect id="${"10"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(618.974 2832.474)"}" fill="${"#e6e7e8"}"></rect><rect id="${"4"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(835.906 2860.652)"}" fill="${"#e6e7e8"}"></rect><path id="${"7"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" d="${"M816.868,3294.587h94.36V3172.014h-122.5v122.573Zm0-94.431h66.218v66.288H816.868Z"}" fill="${"#01fdf6"}"></path><rect id="${"6"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(864.048 3172.014) rotate(180)"}" fill="${"#e6e7e8"}"></rect><rect id="${"12"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(618.974 3077.619)"}" fill="${"#e6e7e8"}"></rect><rect id="${"8"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(816.869 3002.262) rotate(90)"}" fill="${"#e6e7e8"}"></rect><rect id="${"18"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(571.794 3002.262) rotate(90)"}" fill="${"#e6e7e8"}"></rect><rect id="${"11"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"66.217"}" height="${"66.217"}" transform="${"translate(666.154 2766.257) rotate(90)"}" fill="${"#ffcd67"}"></rect><rect id="${"5"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"66.217"}" height="${"66.217"}" transform="${"translate(883.086 2983.224) rotate(90)"}" fill="${"#ffcd67"}"></rect><rect id="${"16"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(430.184 3172.014) rotate(180)"}" fill="${"#e6e7e8"}"></rect><rect id="${"17"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"66.217"}" height="${"66.217"}" transform="${"translate(449.222 2983.224) rotate(90)"}" fill="${"#ffcd67"}"></rect><rect id="${"2"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(1033.801 2785.294) rotate(90)"}" fill="${"#e6e7e8"}"></rect><rect id="${"1"}" class="${"step transition duration-300 ease-in-out active svelte-17h80dv"}" width="${"66.217"}" height="${"66.217"}" transform="${"translate(1100.018 2766.257) rotate(90)"}" fill="${"#ffcd67"}"></rect><path id="${"15"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" d="${"M449.222,3172.014h-94.36v122.573h122.5V3172.014Zm0,94.43H383v-66.288h66.218Z"}" fill="${"#01fdf6"}"></path><rect id="${"14"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"28.142"}" height="${"122.573"}" transform="${"translate(599.936 3219.229) rotate(90)"}" fill="${"#e6e7e8"}"></rect><rect id="${"13"}" class="${"step transition duration-300 ease-in-out svelte-17h80dv"}" width="${"66.217"}" height="${"66.217"}" transform="${"translate(666.154 3200.192) rotate(90)"}" fill="${"#ffcd67"}"></rect></g></svg>`;
 });
-var css$8 = {
+var css$a = {
   code: ".hero-brand-cube.svelte-1mdkt8k{max-width:20%}",
-  map: `{"version":3,"file":"__error.svelte","sources":["__error.svelte"],"sourcesContent":["<script context=\\"module\\">\\n\\texport function load({ error, status }) {\\n\\t\\treturn {\\n\\t\\t\\tprops: { error, status }\\n\\t\\t};\\n\\t}\\n<\/script>\\n\\n<script>\\n\\timport { dev } from '$app/env';\\n\\timport { page } from '$app/stores';\\n\\n\\timport OpenGraph from '$lib/OpenGraph.svelte';\\n\\timport BrandCube from '$lib/svgs/brandcube.svelte';\\n\\n\\texport let status;\\n\\texport let error;\\n\\texport let url = \`https://\${$page.host}\${$page.path}\`;\\n<\/script>\\n\\n<OpenGraph\\n\\ttitle={\`Branden Builds | \${status}\`}\\n\\tkeywords={'branden builds, web developer, frontend developer, backend developer'}\\n\\tdescription=\\"The system is down\\"\\n\\t{url}\\n\\timage={\`images/brandenbuilds-opengraph.jpg\`}\\n/>\\n<article>\\n\\t<section\\n\\t\\tid=\\"404-hero\\"\\n\\t\\tclass=\\"theme-full-height hero bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n\\t>\\n\\t\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t\\t<h1 class=\\"mb-8\\">Oh no! You've reached a {status}</h1>\\n\\t\\t\\t{#if error && error.message}\\n\\t\\t\\t\\t<p class=\\"md:w-1/2\\">{error.message}</p>\\n\\t\\t\\t{/if}\\n\\t\\t\\t{#if dev && error.stack}\\n\\t\\t\\t\\t<pre>{error.stack}</pre>\\n\\t\\t\\t{/if}\\n\\t\\t</div>\\n\\t\\t<div class=\\"hero-brand-cube hidden md:block absolute right-0 bottom-0\\">\\n\\t\\t\\t<BrandCube />\\n\\t\\t</div>\\n\\t</section>\\n</article>\\n\\n<style>.hero-brand-cube {\\n  max-width: 20%;\\n}</style>\\n"],"names":[],"mappings":"AA+CO,gBAAgB,eAAC,CAAC,AACvB,SAAS,CAAE,GAAG,AAChB,CAAC"}`
+  map: `{"version":3,"file":"__error.svelte","sources":["__error.svelte"],"sourcesContent":["<script context=\\"module\\">\\n\\texport function load({ error, status }) {\\n\\t\\treturn {\\n\\t\\t\\tprops: { error, status }\\n\\t\\t};\\n\\t}\\n<\/script>\\n\\n<script>\\n\\timport { dev } from '$app/env';\\n\\timport { page } from '$app/stores';\\n\\timport BrandCube from '$lib/svgs/brandcube.svelte';\\n\\timport MetaTags from '$lib/MetaTags.svelte';\\n\\n\\texport let status;\\n\\texport let error;\\n\\texport let url = \`https://\${$page.host}\${$page.path}\`;\\n<\/script>\\n\\n<MetaTags\\n\\ttitle={\`Branden Builds | \${status}\`}\\n\\tdescription=\\"The system is down\\"\\n\\tkeywords='branden builds, web developer, frontend developer, backend developer'\\n\\topenGraph={{\\n\\t\\turl,\\n\\t\\ttitle: \`Branden Builds | \${status}\`,\\n\\t\\tdescription: 'The system is down',\\n\\t\\timages: [\\n\\t\\t\\t{\\n\\t\\t\\t\\turl: 'images/brandenbuilds-opengraph.jpg',\\n\\t\\t\\t\\twidth: 800,\\n\\t\\t\\t\\theight: 600,\\n\\t\\t\\t\\talt: 'Branden Builds Website Development Services'\\n\\t\\t\\t},\\n\\t\\t],\\n\\t\\tsite_name: 'Branden Builds'\\n\\t}}\\n/>\\n\\n<article>\\n\\t<section\\n\\t\\tid=\\"404-hero\\"\\n\\t\\tclass=\\"theme-full-height hero bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n\\t>\\n\\t\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t\\t<h1 class=\\"mb-8\\">Oh no! You've reached a {status}</h1>\\n\\t\\t\\t{#if error && error.message}\\n\\t\\t\\t\\t<p class=\\"md:w-1/2\\">{error.message}</p>\\n\\t\\t\\t{/if}\\n\\t\\t\\t{#if dev && error.stack}\\n\\t\\t\\t\\t<pre>{error.stack}</pre>\\n\\t\\t\\t{/if}\\n\\t\\t</div>\\n\\t\\t<div class=\\"hero-brand-cube hidden md:block absolute right-0 bottom-0\\">\\n\\t\\t\\t<BrandCube />\\n\\t\\t</div>\\n\\t</section>\\n</article>\\n\\n<style>.hero-brand-cube {\\n  max-width: 20%;\\n}</style>\\n"],"names":[],"mappings":"AA2DO,gBAAgB,eAAC,CAAC,AACvB,SAAS,CAAE,GAAG,AAChB,CAAC"}`
 };
 function load$2({ error: error22, status }) {
   return { props: { error: error22, status } };
@@ -4142,15 +4259,28 @@ var _error = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.error(error22);
   if ($$props.url === void 0 && $$bindings.url && url !== void 0)
     $$bindings.url(url);
-  $$result.css.add(css$8);
+  $$result.css.add(css$a);
   $$unsubscribe_page();
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: `Branden Builds | ${status}`,
-    keywords: "branden builds, web developer, frontend developer, backend developer",
     description: "The system is down",
-    url,
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: "branden builds, web developer, frontend developer, backend developer",
+    openGraph: {
+      url,
+      title: `Branden Builds | ${status}`,
+      description: "The system is down",
+      images: [
+        {
+          url: "images/brandenbuilds-opengraph.jpg",
+          width: 800,
+          height: 600,
+          alt: "Branden Builds Website Development Services"
+        }
+      ],
+      site_name: "Branden Builds"
+    }
   }, {}, {})}
+
 <article><section id="${"404-hero"}" class="${"theme-full-height hero bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4"}"><h1 class="${"mb-8"}">Oh no! You&#39;ve reached a ${escape2(status)}</h1>
 			${error22 && error22.message ? `<p class="${"md:w-1/2"}">${escape2(error22.message)}</p>` : ``}
 			${``}</div>
@@ -4163,9 +4293,9 @@ var __error = /* @__PURE__ */ Object.freeze({
   "default": _error,
   load: load$2
 });
-var css$7 = {
-  code: ".hero-logo .logo-icon{min-width:18px;margin-right:0.25rem}.hero-home.svelte-1dudbc4{height:calc(75vh)}.expierence-list-item.svelte-1dudbc4{word-spacing:100vw}@media(min-width: 768px){.hero-logo .logo-icon{max-width:30px}.expierence-list-item.svelte-1dudbc4{word-spacing:normal}}@media(min-width: 1024px){.hero-home.svelte-1dudbc4{height:calc(65vh)}}",
-  map: `{"version":3,"file":"Hero.svelte","sources":["Hero.svelte"],"sourcesContent":["<script>\\n\\timport { onMount } from 'svelte';\\n\\timport { fade, fly } from 'svelte/transition';\\n\\timport LogoIcon from '$lib/logo/Icon.svelte';\\n\\timport LogoName from '$lib/logo/Name.svelte';\\n\\n\\tlet activeIndex = 0;\\n\\n\\tonMount(() => {\\n\\t\\tconst interval = setInterval(() => {\\n\\t\\t\\tif (serviceslist[activeIndex + 1]) {\\n\\t\\t\\t\\tactiveIndex += 1;\\n\\t\\t\\t\\treturn;\\n\\t\\t\\t}\\n\\t\\t\\tactiveIndex = 0;\\n\\t\\t}, 2000);\\n\\t\\treturn () => {\\n\\t\\t\\tclearInterval(interval);\\n\\t\\t};\\n\\t});\\n\\n\\texport let title;\\n\\texport let subtitle;\\n\\texport let serviceslist;\\n<\/script>\\n\\n<section id=\\"home-banner\\" class=\\"hero-home bg-bbuilds-gray\\">\\n\\t<div class=\\"flex flex-col justify-center items-center h-full px-4\\">\\n\\t\\t<header class=\\"header-text text-center px-15\\">\\n\\t\\t\\t<h1 class=\\"text-xl\\">{title}</h1>\\n\\t\\t\\t<div class=\\"flex items-center justify-center mb-4 text-bbuilds-black hero-logo max-w-100\\">\\n\\t\\t\\t\\t<LogoIcon />\\n\\t\\t\\t\\t<LogoName />\\n\\t\\t\\t</div>\\n\\t\\t</header>\\n\\t\\t<div class=\\"w-full text-center transform pt-24 lg:pt-16\\">\\n\\t\\t\\t<p class=\\"mb-20 md:mb-10\\">{subtitle}</p>\\n\\t\\t\\t<ul\\n\\t\\t\\t\\tid=\\"expierence-list\\"\\n\\t\\t\\t\\tclass=\\"relative animated-list flex flex-col items-center justify-center w-full\\"\\n\\t\\t\\t>\\n\\t\\t\\t\\t{#each serviceslist as service, i}\\n\\t\\t\\t\\t\\t{#if activeIndex === i}\\n\\t\\t\\t\\t\\t\\t<li\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"absolute text-3xl leading-tight expierence-list-item\\"\\n\\t\\t\\t\\t\\t\\t\\tin:fly={{ y: 10, duration: 300, delay: 300 }}\\n\\t\\t\\t\\t\\t\\t\\tout:fade\\n\\t\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t\\t\\t{service}\\n\\t\\t\\t\\t\\t\\t</li>\\n\\t\\t\\t\\t\\t{/if}\\n\\t\\t\\t\\t{/each}\\n\\t\\t\\t</ul>\\n\\t\\t</div>\\n\\t</div>\\n</section>\\n\\n<style>:global(.hero-logo .logo-icon) {\\n  min-width: 18px;\\n  margin-right: 0.25rem;\\n}\\n.hero-home {\\n  height: calc(75vh);\\n}\\n.expierence-list-item {\\n  word-spacing: 100vw;\\n}\\n@media (min-width: 768px) {\\n  :global(.hero-logo .logo-icon) {\\n    max-width: 30px;\\n  }\\n  .expierence-list-item {\\n    word-spacing: normal;\\n  }\\n}\\n@media (min-width: 1024px) {\\n  .hero-home {\\n    height: calc(65vh);\\n  }\\n}</style>\\n"],"names":[],"mappings":"AAyDe,qBAAqB,AAAE,CAAC,AACrC,SAAS,CAAE,IAAI,CACf,YAAY,CAAE,OAAO,AACvB,CAAC,AACD,UAAU,eAAC,CAAC,AACV,MAAM,CAAE,KAAK,IAAI,CAAC,AACpB,CAAC,AACD,qBAAqB,eAAC,CAAC,AACrB,YAAY,CAAE,KAAK,AACrB,CAAC,AACD,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AACjB,qBAAqB,AAAE,CAAC,AAC9B,SAAS,CAAE,IAAI,AACjB,CAAC,AACD,qBAAqB,eAAC,CAAC,AACrB,YAAY,CAAE,MAAM,AACtB,CAAC,AACH,CAAC,AACD,MAAM,AAAC,YAAY,MAAM,CAAC,AAAC,CAAC,AAC1B,UAAU,eAAC,CAAC,AACV,MAAM,CAAE,KAAK,IAAI,CAAC,AACpB,CAAC,AACH,CAAC"}`
+var css$9 = {
+  code: ".hero-logo .logo-icon{min-width:18px;margin-right:0.25rem;max-width:25px}.hero-home.svelte-1bth40j{min-height:15.625rem;height:calc(75vh)}.expierence-list-item.svelte-1bth40j{word-spacing:100vw}@media(min-width: 768px){.hero-logo .logo-icon{max-width:30px}.expierence-list-item.svelte-1bth40j{word-spacing:normal}}@media(min-width: 1024px){.hero-home.svelte-1bth40j{height:calc(65vh)}}",
+  map: `{"version":3,"file":"Hero.svelte","sources":["Hero.svelte"],"sourcesContent":["<script>\\n\\timport { onMount } from 'svelte';\\n\\timport { fade, fly } from 'svelte/transition';\\n\\timport LogoIcon from '$lib/logo/Icon.svelte';\\n\\timport LogoName from '$lib/logo/Name.svelte';\\n\\n\\tlet activeIndex = 0;\\n\\n\\tonMount(() => {\\n\\t\\tconst interval = setInterval(() => {\\n\\t\\t\\tif (serviceslist[activeIndex + 1]) {\\n\\t\\t\\t\\tactiveIndex += 1;\\n\\t\\t\\t\\treturn;\\n\\t\\t\\t}\\n\\t\\t\\tactiveIndex = 0;\\n\\t\\t}, 2000);\\n\\t\\treturn () => {\\n\\t\\t\\tclearInterval(interval);\\n\\t\\t};\\n\\t});\\n\\n\\texport let title;\\n\\texport let subtitle;\\n\\texport let serviceslist;\\n<\/script>\\n\\n<section id=\\"home-banner\\" class=\\"hero-home bg-bbuilds-gray\\">\\n\\t<div class=\\"flex flex-col justify-center items-center h-full px-4\\">\\n\\t\\t<header class=\\"header-text text-center px-15\\">\\n\\t\\t\\t<h1 class=\\"text-xl\\">{title} <span class=\\"sr-only\\">Branden Builds a headless wordpress developer</span></h1>\\n\\t\\t\\t<div class=\\"flex items-center justify-center mb-4 text-bbuilds-black hero-logo max-w-100\\">\\n\\t\\t\\t\\t<LogoIcon />\\n\\t\\t\\t\\t<LogoName />\\n\\t\\t\\t</div>\\n\\t\\t</header>\\n\\t\\t<div class=\\"w-full text-center transform pt-24 lg:pt-16\\">\\n\\t\\t\\t<p class=\\"mb-20 md:mb-10\\">{subtitle}</p>\\n\\t\\t\\t<ul\\n\\t\\t\\t\\tid=\\"expierence-list\\"\\n\\t\\t\\t\\tclass=\\"relative animated-list flex flex-col items-center justify-center w-full\\"\\n\\t\\t\\t>\\n\\t\\t\\t\\t{#each serviceslist as service, i}\\n\\t\\t\\t\\t\\t{#if activeIndex === i}\\n\\t\\t\\t\\t\\t\\t<li\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"absolute text-3xl leading-tight expierence-list-item\\"\\n\\t\\t\\t\\t\\t\\t\\tin:fly={{ y: 10, duration: 300, delay: 300 }}\\n\\t\\t\\t\\t\\t\\t\\tout:fade\\n\\t\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t\\t\\t{service}\\n\\t\\t\\t\\t\\t\\t</li>\\n\\t\\t\\t\\t\\t{/if}\\n\\t\\t\\t\\t{/each}\\n\\t\\t\\t</ul>\\n\\t\\t</div>\\n\\t</div>\\n</section>\\n\\n<style>:global(.hero-logo .logo-icon) {\\n  min-width: 18px;\\n  margin-right: 0.25rem;\\n  max-width: 25px;\\n}\\n.hero-home {\\n  min-height: 15.625rem;\\n  height: calc(75vh);\\n}\\n.expierence-list-item {\\n  word-spacing: 100vw;\\n}\\n@media (min-width: 768px) {\\n  :global(.hero-logo .logo-icon) {\\n    max-width: 30px;\\n  }\\n  .expierence-list-item {\\n    word-spacing: normal;\\n  }\\n}\\n@media (min-width: 1024px) {\\n  .hero-home {\\n    height: calc(65vh);\\n  }\\n}</style>\\n"],"names":[],"mappings":"AAyDe,qBAAqB,AAAE,CAAC,AACrC,SAAS,CAAE,IAAI,CACf,YAAY,CAAE,OAAO,CACrB,SAAS,CAAE,IAAI,AACjB,CAAC,AACD,UAAU,eAAC,CAAC,AACV,UAAU,CAAE,SAAS,CACrB,MAAM,CAAE,KAAK,IAAI,CAAC,AACpB,CAAC,AACD,qBAAqB,eAAC,CAAC,AACrB,YAAY,CAAE,KAAK,AACrB,CAAC,AACD,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AACjB,qBAAqB,AAAE,CAAC,AAC9B,SAAS,CAAE,IAAI,AACjB,CAAC,AACD,qBAAqB,eAAC,CAAC,AACrB,YAAY,CAAE,MAAM,AACtB,CAAC,AACH,CAAC,AACD,MAAM,AAAC,YAAY,MAAM,CAAC,AAAC,CAAC,AAC1B,UAAU,eAAC,CAAC,AACV,MAAM,CAAE,KAAK,IAAI,CAAC,AACpB,CAAC,AACH,CAAC"}`
 };
 var Hero = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let activeIndex = 0;
@@ -4178,12 +4308,12 @@ var Hero = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.subtitle(subtitle);
   if ($$props.serviceslist === void 0 && $$bindings.serviceslist && serviceslist !== void 0)
     $$bindings.serviceslist(serviceslist);
-  $$result.css.add(css$7);
-  return `<section id="${"home-banner"}" class="${"hero-home bg-bbuilds-gray svelte-1dudbc4"}"><div class="${"flex flex-col justify-center items-center h-full px-4"}"><header class="${"header-text text-center px-15"}"><h1 class="${"text-xl"}">${escape2(title2)}</h1>
+  $$result.css.add(css$9);
+  return `<section id="${"home-banner"}" class="${"hero-home bg-bbuilds-gray svelte-1bth40j"}"><div class="${"flex flex-col justify-center items-center h-full px-4"}"><header class="${"header-text text-center px-15"}"><h1 class="${"text-xl"}">${escape2(title2)} <span class="${"sr-only"}">Branden Builds a headless wordpress developer</span></h1>
 			<div class="${"flex items-center justify-center mb-4 text-bbuilds-black hero-logo max-w-100"}">${validate_component(Icon, "LogoIcon").$$render($$result, {}, {}, {})}
 				${validate_component(Name, "LogoName").$$render($$result, {}, {}, {})}</div></header>
 		<div class="${"w-full text-center transform pt-24 lg:pt-16"}"><p class="${"mb-20 md:mb-10"}">${escape2(subtitle)}</p>
-			<ul id="${"expierence-list"}" class="${"relative animated-list flex flex-col items-center justify-center w-full"}">${each(serviceslist, (service, i) => `${activeIndex === i ? `<li class="${"absolute text-3xl leading-tight expierence-list-item svelte-1dudbc4"}">${escape2(service)}
+			<ul id="${"expierence-list"}" class="${"relative animated-list flex flex-col items-center justify-center w-full"}">${each(serviceslist, (service, i) => `${activeIndex === i ? `<li class="${"absolute text-3xl leading-tight expierence-list-item svelte-1bth40j"}">${escape2(service)}
 						</li>` : ``}`)}</ul></div></div>
 </section>`;
 });
@@ -4193,7 +4323,7 @@ var Connector = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.classes(classes);
   return `<svg${add_attribute("class", classes, 0)} xmlns="${"http://www.w3.org/2000/svg"}" width="${"122.573"}" height="${"66.217"}" viewBox="${"0 0 122.573 66.217"}"><g id="${"Group_145"}" data-name="${"Group 145"}" transform="${"translate(-1759.012 -2766.257)"}"><rect id="${"Rectangle_224"}" data-name="${"Rectangle 224"}" width="${"122.573"}" height="${"28.142"}" transform="${"translate(1759.012 2785.294)"}" fill="${"#e6e7e8"}"></rect></g><rect id="${"Rectangle_225"}" data-name="${"Rectangle 225"}" width="${"66.217"}" height="${"66.217"}" transform="${"translate(29.2)"}" fill="${"#ffcd67"}"></rect></svg>`;
 });
-var css$6 = {
+var css$8 = {
   code: ".method-box .svg{max-height:1.5rem;color:var(--bbuilds-gray);transition:0.3s ease-out;min-width:1.2rem}@media(min-width: 768px){.method-box .svg{max-height:2rem}}@media(min-width: 1024px){.method-box .svg{max-height:2.25rem}}.method-box.svelte-b6n89m .icon-box.svelte-b6n89m::before{position:absolute;left:0;bottom:0;content:'';display:block;width:100%;height:100%;background-color:var(--bbuilds-yellow);transform-origin:0 bottom 0;transform:scaleY(0);transition:0.3s ease-out}.method-box.svelte-b6n89m .icon-box.svelte-b6n89m:hover:before,.method-box.svelte-b6n89m .icon-box.active.svelte-b6n89m:before{transform:scaleY(1)}.method-box .icon-box:hover .svg, .active .svg{color:var(--bbuilds-black)}.method-box.svelte-b6n89m .icon-box.svelte-b6n89m:hover,.active.svelte-b6n89m.svelte-b6n89m{color:var(--bbuilds-black)}",
   map: `{"version":3,"file":"Process.svelte","sources":["Process.svelte"],"sourcesContent":["<script>\\n\\timport { onMount } from 'svelte';\\n\\n\\timport ConnecterIcon from '$lib/svgs/connector.svelte';\\n\\n\\texport let title;\\n\\n\\tlet activeIndex = 0;\\n\\n\\tconst processList = [\\n\\t\\t{\\n\\t\\t\\tid: 1,\\n\\t\\t\\ttitle: 'Discovery',\\n\\t\\t\\turl: 'https://google.com/',\\n\\t\\t\\tcopy: 'What are we solving?',\\n\\t\\t\\tsvg:\\n\\t\\t\\t\\t'<svg aria-hidden=\\"true\\" focusable=\\"false\\"  class=\\"lightbulb-icon svg relative\\" role=\\"img\\" xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 352 512\\"><path fill=\\"currentColor\\" d=\\"M176 80c-52.94 0-96 43.06-96 96 0 8.84 7.16 16 16 16s16-7.16 16-16c0-35.3 28.72-64 64-64 8.84 0 16-7.16 16-16s-7.16-16-16-16zM96.06 459.17c0 3.15.93 6.22 2.68 8.84l24.51 36.84c2.97 4.46 7.97 7.14 13.32 7.14h78.85c5.36 0 10.36-2.68 13.32-7.14l24.51-36.84c1.74-2.62 2.67-5.7 2.68-8.84l.05-43.18H96.02l.04 43.18zM176 0C73.72 0 0 82.97 0 176c0 44.37 16.45 84.85 43.56 115.78 16.64 18.99 42.74 58.8 52.42 92.16v.06h48v-.12c-.01-4.77-.72-9.51-2.15-14.07-5.59-17.81-22.82-64.77-62.17-109.67-20.54-23.43-31.52-53.15-31.61-84.14-.2-73.64 59.67-128 127.95-128 70.58 0 128 57.42 128 128 0 30.97-11.24 60.85-31.65 84.14-39.11 44.61-56.42 91.47-62.1 109.46a47.507 47.507 0 0 0-2.22 14.3v.1h48v-.05c9.68-33.37 35.78-73.18 52.42-92.16C335.55 260.85 352 220.37 352 176 352 78.8 273.2 0 176 0z\\"></path></svg>'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\tid: 2,\\n\\t\\t\\ttitle: 'Research',\\n\\t\\t\\turl: 'https://google.com/',\\n\\t\\t\\tcopy: 'Who are we solving this for?',\\n\\t\\t\\tsvg:\\n\\t\\t\\t\\t'<svg aria-hidden=\\"true\\" focusable=\\"false\\" class=\\"searchengin-icon svg relative\\" role=\\"img\\" xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 460 512\\"><path fill=\\"currentColor\\" d=\\"M220.6 130.3l-67.2 28.2V43.2L98.7 233.5l54.7-24.2v130.3l67.2-209.3zm-83.2-96.7l-1.3 4.7-15.2 52.9C80.6 106.7 52 145.8 52 191.5c0 52.3 34.3 95.9 83.4 105.5v53.6C57.5 340.1 0 272.4 0 191.6c0-80.5 59.8-147.2 137.4-158zm311.4 447.2c-11.2 11.2-23.1 12.3-28.6 10.5-5.4-1.8-27.1-19.9-60.4-44.4-33.3-24.6-33.6-35.7-43-56.7-9.4-20.9-30.4-42.6-57.5-52.4l-9.7-14.7c-24.7 16.9-53 26.9-81.3 28.7l2.1-6.6 15.9-49.5c46.5-11.9 80.9-54 80.9-104.2 0-54.5-38.4-102.1-96-107.1V32.3C254.4 37.4 320 106.8 320 191.6c0 33.6-11.2 64.7-29 90.4l14.6 9.6c9.8 27.1 31.5 48 52.4 57.4s32.2 9.7 56.8 43c24.6 33.2 42.7 54.9 44.5 60.3s.7 17.3-10.5 28.5zm-9.9-17.9c0-4.4-3.6-8-8-8s-8 3.6-8 8 3.6 8 8 8 8-3.6 8-8z\\"></path></svg>'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\tid: 3,\\n\\t\\t\\ttitle: 'Create',\\n\\t\\t\\turl: 'https://google.com/',\\n\\t\\t\\tcopy: 'How will we build this solution?',\\n\\t\\t\\tsvg:\\n\\t\\t\\t\\t'<svg aria-hidden=\\"true\\" focusable=\\"false\\" class=\\"svg relative code-icon\\" role=\\"img\\" xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 640 512\\"><path fill=\\"currentColor\\" d=\\"M278.9 511.5l-61-17.7c-6.4-1.8-10-8.5-8.2-14.9L346.2 8.7c1.8-6.4 8.5-10 14.9-8.2l61 17.7c6.4 1.8 10 8.5 8.2 14.9L293.8 503.3c-1.9 6.4-8.5 10.1-14.9 8.2zm-114-112.2l43.5-46.4c4.6-4.9 4.3-12.7-.8-17.2L117 256l90.6-79.7c5.1-4.5 5.5-12.3.8-17.2l-43.5-46.4c-4.5-4.8-12.1-5.1-17-.5L3.8 247.2c-5.1 4.7-5.1 12.8 0 17.5l144.1 135.1c4.9 4.6 12.5 4.4 17-.5zm327.2.6l144.1-135.1c5.1-4.7 5.1-12.8 0-17.5L492.1 112.1c-4.8-4.5-12.4-4.3-17 .5L431.6 159c-4.6 4.9-4.3 12.7.8 17.2L523 256l-90.6 79.7c-5.1 4.5-5.5 12.3-.8 17.2l43.5 46.4c4.5 4.9 12.1 5.1 17 .6z\\"></path></svg>'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\tid: 4,\\n\\t\\t\\ttitle: 'Launch',\\n\\t\\t\\turl: 'https://google.com/',\\n\\t\\t\\tcopy: 'How can the market use our solution?',\\n\\t\\t\\tsvg:\\n\\t\\t\\t\\t'<svg aria-hidden=\\"true\\" focusable=\\"false\\" class=\\"svg relative icon-rocket\\" role=\\"img\\" xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 512 512\\"><path fill=\\"currentColor\\" d=\\"M505.12019,19.09375c-1.18945-5.53125-6.65819-11-12.207-12.1875C460.716,0,435.507,0,410.40747,0,307.17523,0,245.26909,55.20312,199.05238,128H94.83772c-16.34763.01562-35.55658,11.875-42.88664,26.48438L2.51562,253.29688A28.4,28.4,0,0,0,0,264a24.00867,24.00867,0,0,0,24.00582,24H127.81618l-22.47457,22.46875c-11.36521,11.36133-12.99607,32.25781,0,45.25L156.24582,406.625c11.15623,11.1875,32.15619,13.15625,45.27726,0l22.47457-22.46875V488a24.00867,24.00867,0,0,0,24.00581,24,28.55934,28.55934,0,0,0,10.707-2.51562l98.72834-49.39063c14.62888-7.29687,26.50776-26.5,26.50776-42.85937V312.79688c72.59753-46.3125,128.03493-108.40626,128.03493-211.09376C512.07526,76.5,512.07526,51.29688,505.12019,19.09375ZM384.04033,168A40,40,0,1,1,424.05,128,40.02322,40.02322,0,0,1,384.04033,168Z\\"></path></svg>'\\n\\t\\t}\\n\\t];\\n\\n\\tonMount(() => {\\n\\t\\tconst interval = setInterval(() => {\\n\\t\\t\\tif (processList[activeIndex + 1]) {\\n\\t\\t\\t\\tactiveIndex += 1;\\n\\t\\t\\t\\treturn;\\n\\t\\t\\t}\\n\\t\\t\\tactiveIndex = 0;\\n\\t\\t}, 3000);\\n\\t\\treturn () => {\\n\\t\\t\\tclearInterval(interval);\\n\\t\\t};\\n\\t});\\n<\/script>\\n\\n<section id=\\"process\\" class=\\"py-10 lg:py-20 bg-bbuilds-black text-bbuilds-gray\\">\\n\\t<div class=\\"px-4 mx-auto lg:px-0\\">\\n\\t\\t{#if title}\\n\\t\\t\\t<h2 class=\\"text-center mb-10\\">{title}</h2>\\n\\t\\t{/if}\\n\\t\\t<div class=\\"grid grid-cols-2 gap-2 md:gap-6 lg:grid-cols-4 lg:gap-0\\">\\n\\t\\t\\t{#each processList as item, index}<div class=\\"text-center method-box flex items-center\\">\\n\\t\\t\\t\\t\\t<ConnecterIcon classes={\`hidden lg:block\`} />\\n\\t\\t\\t\\t\\t<div\\n\\t\\t\\t\\t\\t\\tclass=\\"icon-box relative flex md:flex-col border-2 border-bbuilds-yellow px-4 py-2 justify-center items-center h-full transition duration-300 ease-in-out w-full lg:py-6\\"\\n\\t\\t\\t\\t\\t\\tclass:active={activeIndex === index}\\n\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t\\t{@html item.svg}\\n\\t\\t\\t\\t\\t\\t<h3 class=\\"text-lg relative ml-2 lg:text-xl\\">{item.title}</h3>\\n\\t\\t\\t\\t\\t\\t{#if title}\\n\\t\\t\\t\\t\\t\\t\\t<p class=\\"max-w-xs relative hidden lg:block\\">{item.copy}</p>\\n\\t\\t\\t\\t\\t\\t{/if}\\n\\t\\t\\t\\t\\t</div>\\n\\t\\t\\t\\t\\t{#if index + 1 >= processList.length}\\n\\t\\t\\t\\t\\t\\t<ConnecterIcon classes={\`hidden lg:block\`} />\\n\\t\\t\\t\\t\\t{/if}\\n\\t\\t\\t\\t</div>\\n\\t\\t\\t{/each}\\n\\t\\t</div>\\n\\t</div>\\n</section>\\n\\n<style>:global(.method-box .svg) {\\n  max-height: 1.5rem;\\n  color: var(--bbuilds-gray);\\n  transition: 0.3s ease-out;\\n  min-width: 1.2rem;\\n}\\n@media (min-width: 768px) {\\n  :global(.method-box .svg) {\\n    max-height: 2rem;\\n  }\\n}\\n@media (min-width: 1024px) {\\n  :global(.method-box .svg) {\\n    max-height: 2.25rem;\\n  }\\n}\\n.method-box .icon-box::before {\\n  position: absolute;\\n  left: 0;\\n  bottom: 0;\\n  content: '';\\n  display: block;\\n  width: 100%;\\n  height: 100%;\\n  background-color: var(--bbuilds-yellow);\\n  transform-origin: 0 bottom 0;\\n  transform: scaleY(0);\\n  transition: 0.3s ease-out;\\n}\\n.method-box .icon-box:hover:before, .method-box .icon-box.active:before {\\n  transform: scaleY(1);\\n}\\n:global(.method-box .icon-box:hover .svg, .active .svg) {\\n  color: var(--bbuilds-black);\\n}\\n.method-box .icon-box:hover, .active {\\n  color: var(--bbuilds-black);\\n}</style>\\n"],"names":[],"mappings":"AAqFe,gBAAgB,AAAE,CAAC,AAChC,UAAU,CAAE,MAAM,CAClB,KAAK,CAAE,IAAI,cAAc,CAAC,CAC1B,UAAU,CAAE,IAAI,CAAC,QAAQ,CACzB,SAAS,CAAE,MAAM,AACnB,CAAC,AACD,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AACjB,gBAAgB,AAAE,CAAC,AACzB,UAAU,CAAE,IAAI,AAClB,CAAC,AACH,CAAC,AACD,MAAM,AAAC,YAAY,MAAM,CAAC,AAAC,CAAC,AAClB,gBAAgB,AAAE,CAAC,AACzB,UAAU,CAAE,OAAO,AACrB,CAAC,AACH,CAAC,AACD,yBAAW,CAAC,uBAAS,QAAQ,AAAC,CAAC,AAC7B,QAAQ,CAAE,QAAQ,CAClB,IAAI,CAAE,CAAC,CACP,MAAM,CAAE,CAAC,CACT,OAAO,CAAE,EAAE,CACX,OAAO,CAAE,KAAK,CACd,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,CACZ,gBAAgB,CAAE,IAAI,gBAAgB,CAAC,CACvC,gBAAgB,CAAE,CAAC,CAAC,MAAM,CAAC,CAAC,CAC5B,SAAS,CAAE,OAAO,CAAC,CAAC,CACpB,UAAU,CAAE,IAAI,CAAC,QAAQ,AAC3B,CAAC,AACD,yBAAW,CAAC,uBAAS,MAAM,OAAO,CAAE,yBAAW,CAAC,SAAS,qBAAO,OAAO,AAAC,CAAC,AACvE,SAAS,CAAE,OAAO,CAAC,CAAC,AACtB,CAAC,AACO,8CAA8C,AAAE,CAAC,AACvD,KAAK,CAAE,IAAI,eAAe,CAAC,AAC7B,CAAC,AACD,yBAAW,CAAC,uBAAS,MAAM,CAAE,OAAO,4BAAC,CAAC,AACpC,KAAK,CAAE,IAAI,eAAe,CAAC,AAC7B,CAAC"}`
 };
@@ -4232,7 +4362,7 @@ var Process = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   ];
   if ($$props.title === void 0 && $$bindings.title && title2 !== void 0)
     $$bindings.title(title2);
-  $$result.css.add(css$6);
+  $$result.css.add(css$8);
   return `<section id="${"process"}" class="${"py-10 lg:py-20 bg-bbuilds-black text-bbuilds-gray"}"><div class="${"px-4 mx-auto lg:px-0"}">${title2 ? `<h2 class="${"text-center mb-10"}">${escape2(title2)}</h2>` : ``}
 		<div class="${"grid grid-cols-2 gap-2 md:gap-6 lg:grid-cols-4 lg:gap-0"}">${each(processList, (item, index2) => `<div class="${"text-center method-box flex items-center svelte-b6n89m"}">${validate_component(Connector, "ConnecterIcon").$$render($$result, { classes: `hidden lg:block` }, {}, {})}
 					<div class="${[
@@ -4262,13 +4392,13 @@ var Services$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => 
   if ($$props.skills === void 0 && $$bindings.skills && skills !== void 0)
     $$bindings.skills(skills);
   return `<section id="${"services"}" class="${"py-10 lg:py-20 bg-bbuilds-yellow text-bbuilds-black"}"><div class="${"container mx-auto px-4"}"><h2 class="${"text-center mb-10"}">${escape2(servicesTitle)}</h2>
-		<ul class="${"grid gap-4 md:grid-cols-2 lg:grid-cols-3"}">${each(services2, (service) => `<li class="${"flex items-center"}"><a${add_attribute("href", service.url, 0)} class="${"p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out transform hover:-translate-y-2 hover:bg-bbuilds-black hover:text-bbuilds-yellow"}"><h6 class="${"text-xs font-semibold leading-none"}">${escape2(service.title)}</h6>
+		<ul class="${"grid gap-4 md:grid-cols-2 lg:grid-cols-3"}">${each(services2, (service, index2) => `<li class="${"flex items-center"}" data-aos="${"fade-right"}"${add_attribute("data-aos-delay", `${index2}00`, 0)}><a${add_attribute("href", service.url, 0)} class="${"p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out transform hover:-translate-y-2 hover:bg-bbuilds-black hover:text-bbuilds-yellow"}"><h3 class="${"text-lg font-semibold leading-none"}">${escape2(service.title)}</h3>
 						<p class="${"mt-2 leading-none"}">${escape2(service.copy)}
 						</p></a>
 				</li>`)}</ul>
 		<div class="${"skillset hidden md:block pt-10"}"><h3 class="${"text-center mb-4"}">${escape2(skillsTitle)}</h3>
 			<p class="${"text-center max-w-4xl mx-auto mb-6"}">${escape2(skillsCopy)}</p>
-			<ul class="${"grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4"}">${each(skills, (skill, index2) => `<li class="${"flex items-center bg-bbuilds-gray text-center shadow-sm"}"><img${add_attribute("src", skill.logo, 0)}${add_attribute("alt", `${skill.title} Logo`, 0)} width="${"40"}" height="${"40"}" class="${"p-1.5 bg-white h-12 w-12"}">
+			<ul class="${"grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4"}">${each(skills, (skill, index2) => `<li class="${"flex items-center bg-bbuilds-gray text-center shadow-sm"}" data-aos="${"fade-right"}"${add_attribute("data-aos-delay", `${index2}00`, 0)}><img${add_attribute("src", skill.logo, 0)}${add_attribute("alt", `${skill.title} Logo`, 0)} width="${"40"}" height="${"40"}" class="${"p-1.5 bg-white h-12 w-12"}" loading="${"lazy"}">
 						<span class="${"ml-auto mr-auto"}">${escape2(skill.title)}</span>
 					</li>`)}</ul></div></div>
 	</section>`;
@@ -4276,30 +4406,147 @@ var Services$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => 
 var Link = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   return `<svg aria-hidden="${"true"}" focusable="${"false"}" class="${"svg link duration-200"}" role="${"img"}" xmlns="${"http://www.w3.org/2000/svg"}" viewBox="${"0 0 512 512"}"><path fill="${"currentColor"}" d="${"M326.612 185.391c59.747 59.809 58.927 155.698.36 214.59-.11.12-.24.25-.36.37l-67.2 67.2c-59.27 59.27-155.699 59.262-214.96 0-59.27-59.26-59.27-155.7 0-214.96l37.106-37.106c9.84-9.84 26.786-3.3 27.294 10.606.648 17.722 3.826 35.527 9.69 52.721 1.986 5.822.567 12.262-3.783 16.612l-13.087 13.087c-28.026 28.026-28.905 73.66-1.155 101.96 28.024 28.579 74.086 28.749 102.325.51l67.2-67.19c28.191-28.191 28.073-73.757 0-101.83-3.701-3.694-7.429-6.564-10.341-8.569a16.037 16.037 0 0 1-6.947-12.606c-.396-10.567 3.348-21.456 11.698-29.806l21.054-21.055c5.521-5.521 14.182-6.199 20.584-1.731a152.482 152.482 0 0 1 20.522 17.197zM467.547 44.449c-59.261-59.262-155.69-59.27-214.96 0l-67.2 67.2c-.12.12-.25.25-.36.37-58.566 58.892-59.387 154.781.36 214.59a152.454 152.454 0 0 0 20.521 17.196c6.402 4.468 15.064 3.789 20.584-1.731l21.054-21.055c8.35-8.35 12.094-19.239 11.698-29.806a16.037 16.037 0 0 0-6.947-12.606c-2.912-2.005-6.64-4.875-10.341-8.569-28.073-28.073-28.191-73.639 0-101.83l67.2-67.19c28.239-28.239 74.3-28.069 102.325.51 27.75 28.3 26.872 73.934-1.155 101.96l-13.087 13.087c-4.35 4.35-5.769 10.79-3.783 16.612 5.864 17.194 9.042 34.999 9.69 52.721.509 13.906 17.454 20.446 27.294 10.606l37.106-37.106c59.271-59.259 59.271-155.699.001-214.959z"}"></path></svg>`;
 });
+var css$7 = {
+  code: ".wrapper.svelte-wwh48c{display:inline-block}",
+  map: `{"version":3,"file":"Waypoint.svelte","sources":["Waypoint.svelte"],"sourcesContent":["<script>\\n  import { createEventDispatcher, onDestroy } from 'svelte';\\n\\n  const dispatch = createEventDispatcher();\\n\\n  export let offset = 0;\\n  export let throttle = 250;\\n  export let c = '';\\n  export let style = '';\\n  export let once = true;\\n  export let threshold = 1.0;\\n  export let disabled = false;\\n\\n  let className = \\"\\";\\n  export { className as class };\\n\\n  let visible = disabled;\\n  let wasVisible = false;\\n  let intersecting = false;\\n  let removeHandlers = () => {};\\n\\n  function throttleFn(fn, time) {\\n    let last, deferTimer;\\n\\n    return () => {\\n      const now = +new Date;\\n\\n      if (last && now < last + time) {\\n        // hold on to it\\n        clearTimeout(deferTimer);\\n        deferTimer = setTimeout(function () {\\n          last = now;\\n          fn();\\n        }, time);\\n      } else {\\n        last = now;\\n        fn();\\n      }\\n    };\\n  }\\n\\n  function callEvents(wasVisible, observer, node) {\\n    if (visible && !wasVisible) {\\n      dispatch('enter');\\n      return;\\n    }\\n\\n    if (wasVisible && !intersecting) {\\n      dispatch('leave');\\n    }\\n\\n    if (once && wasVisible && !intersecting) {\\n      removeHandlers();\\n    }\\n  }\\n\\n  function waypoint(node) {\\n    if (!window || disabled) return;\\n\\n    if (window.IntersectionObserver && window.IntersectionObserverEntry) {\\n      const observer = new IntersectionObserver(([ { isIntersecting } ]) => {\\n        wasVisible = visible;\\n\\n        intersecting = isIntersecting;\\n\\n        if (wasVisible && once && !isIntersecting) {\\n          callEvents(wasVisible, observer, node);\\n          return;\\n        }\\n\\n        visible = isIntersecting;\\n\\n        callEvents(wasVisible, observer, node);\\n      }, {\\n        rootMargin: offset + 'px',\\n        threshold,\\n      });\\n\\n      observer.observe(node);\\n\\n      removeHandlers = () => observer.unobserve(node);\\n\\n      return removeHandlers;\\n    }\\n\\n    function checkIsVisible() {\\n      // Kudos https://github.com/twobin/react-lazyload/blob/master/src/index.jsx#L93\\n      if (!(node.offsetWidth || node.offsetHeight || node.getClientRects().length)) return;\\n\\n      let top;\\n      let height;\\n\\n      try {\\n        ({ top, height } = node.getBoundingClientRect());\\n      } catch (e) {\\n        ({ top, height } = defaultBoundingClientRect);\\n      }\\n\\n      const windowInnerHeight = window.innerHeight\\n        || document.documentElement.clientHeight;\\n\\n      wasVisible = visible;\\n      intersecting = (top - offset <= windowInnerHeight) &&\\n        (top + height + offset >= 0);\\n\\n      if (wasVisible && once && !isIntersecting) {\\n        callEvents(wasVisible, observer, node);\\n        return;\\n      }\\n\\n      visible = intersecting;\\n\\n      callEvents(wasVisible);\\n    }\\n\\n    checkIsVisible();\\n\\n    const throttled = throttleFn(checkIsVisible, throttle);\\n\\n    window.addEventListener('scroll', throttled);\\n    window.addEventListener('resize', throttled);\\n\\n    removeHandlers = () => {\\n      window.removeEventListener('scroll', throttled);\\n      window.removeEventListener('resize', throttled);\\n    }\\n\\n    return removeHandlers;\\n  }\\n<\/script>\\n\\n<style>.wrapper {\\n  display: inline-block;\\n}</style>\\n\\n<div class=\\"wrapper {className} {c}\\" {style} use:waypoint>\\n  {#if visible}\\n    <slot />\\n  {/if}\\n</div>\\n"],"names":[],"mappings":"AAmIO,QAAQ,cAAC,CAAC,AACf,OAAO,CAAE,YAAY,AACvB,CAAC"}`
+};
+var Waypoint = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  createEventDispatcher();
+  let { offset = 0 } = $$props;
+  let { throttle = 250 } = $$props;
+  let { c = "" } = $$props;
+  let { style = "" } = $$props;
+  let { once = true } = $$props;
+  let { threshold = 1 } = $$props;
+  let { disabled = false } = $$props;
+  let { class: className = "" } = $$props;
+  let visible = disabled;
+  if ($$props.offset === void 0 && $$bindings.offset && offset !== void 0)
+    $$bindings.offset(offset);
+  if ($$props.throttle === void 0 && $$bindings.throttle && throttle !== void 0)
+    $$bindings.throttle(throttle);
+  if ($$props.c === void 0 && $$bindings.c && c !== void 0)
+    $$bindings.c(c);
+  if ($$props.style === void 0 && $$bindings.style && style !== void 0)
+    $$bindings.style(style);
+  if ($$props.once === void 0 && $$bindings.once && once !== void 0)
+    $$bindings.once(once);
+  if ($$props.threshold === void 0 && $$bindings.threshold && threshold !== void 0)
+    $$bindings.threshold(threshold);
+  if ($$props.disabled === void 0 && $$bindings.disabled && disabled !== void 0)
+    $$bindings.disabled(disabled);
+  if ($$props.class === void 0 && $$bindings.class && className !== void 0)
+    $$bindings.class(className);
+  $$result.css.add(css$7);
+  return `<div class="${"wrapper " + escape2(className) + " " + escape2(c) + " svelte-wwh48c"}"${add_attribute("style", style, 0)}>${visible ? `${slots.default ? slots.default({}) : ``}` : ``}</div>`;
+});
+var css$6 = {
+  code: "img.svelte-25t9v1.svelte-25t9v1,canvas.svelte-25t9v1.svelte-25t9v1{object-position:center;position:absolute;top:0;left:0;width:100%;will-change:opacity}.blur.svelte-25t9v1.svelte-25t9v1{filter:blur(15px);transition:opacity 1200ms}.placeholder.svelte-25t9v1.svelte-25t9v1{opacity:1;width:100%;height:100%;transition:opacity 1200ms ease-out;transition-delay:0.4s}.main.svelte-25t9v1.svelte-25t9v1{opacity:0;transition:opacity 1200ms ease-out;transition-delay:0.4s}.loaded.svelte-25t9v1 .placeholder.svelte-25t9v1{opacity:0}.loaded.svelte-25t9v1 .main.svelte-25t9v1{opacity:1}",
+  map: `{"version":3,"file":"Image.svelte","sources":["Image.svelte"],"sourcesContent":["<script>\\n  import { decode } from 'blurhash';\\n  import Waypoint from \\"svelte-waypoint\\";\\n\\n  export let c = \\"\\"; // deprecated\\n  export let alt = \\"\\";\\n  export let width = null;\\n  export let height = null;\\n  export let src = \\"\\";\\n  export let srcset = \\"\\";\\n  export let srcsetWebp = \\"\\";\\n  export let ratio = \\"100%\\";\\n  export let blur = true;\\n  export let sizes = \\"(max-width: 1000px) 100vw, 1000px\\";\\n  export let offset = 0;\\n  export let threshold = 1.0;\\n  export let lazy = true;\\n  export let wrapperClass = \\"\\";\\n  export let placeholderClass = \\"\\";\\n  export let blurhash = null;\\n  export let blurhashSize = null;\\n\\n  let className = \\"\\";\\n  export { className as class };\\n\\n  let loaded = !lazy;\\n\\n  function load(img) {\\n    img.onload = () => (loaded = true);\\n  }\\n\\n  function decodeBlurhash(canvas) {\\n    const pixels = decode(blurhash, blurhashSize.width, blurhashSize.height);\\n    const ctx = canvas.getContext('2d');\\n    const imageData = ctx.createImageData(blurhashSize.width, blurhashSize.height);\\n    imageData.data.set(pixels);\\n    ctx.putImageData(imageData, 0, 0);\\n  }\\n<\/script>\\n\\n<style>img, canvas {\\n  object-position: center;\\n  position: absolute;\\n  top: 0;\\n  left: 0;\\n  width: 100%;\\n  will-change: opacity;\\n}\\n.blur {\\n  filter: blur(15px);\\n  transition: opacity 1200ms;\\n}\\n.placeholder {\\n  opacity: 1;\\n  width: 100%;\\n  height: 100%;\\n  transition: opacity 1200ms ease-out;\\n  transition-delay: 0.4s;\\n}\\n.main {\\n  opacity: 0;\\n  transition: opacity 1200ms ease-out;\\n  transition-delay: 0.4s;\\n}\\n.loaded .placeholder {\\n  opacity: 0;\\n}\\n.loaded .main {\\n  opacity: 1;\\n}</style>\\n\\n<Waypoint\\n  class=\\"{wrapperClass}\\"\\n  style=\\"min-height: 100px; width: 100%;\\"\\n  once\\n  {threshold}\\n  {offset}\\n  disabled=\\"{!lazy}\\"\\n>  \\n  <div class:loaded style=\\"position: relative; width: 100%;\\">\\n    <div style=\\"position: relative; overflow: hidden;\\">\\n      <div style=\\"width:100%;padding-bottom:{ratio};\\"></div>\\n      {#if blurhash}\\n        <canvas class=\\"placeholder\\" use:decodeBlurhash width={blurhashSize.width} height={blurhashSize.height} />\\n      {:else}\\n        <img class=\\"placeholder {placeholderClass}\\" class:blur {src} {alt} />\\n      {/if}\\n      <picture>\\n        <source type=\\"image/webp\\" srcset=\\"{srcsetWebp}\\" {sizes} />\\n        <source {srcset} {sizes} />\\n        <img\\n          {src}\\n          use:load\\n          class=\\"main {c} {className}\\"\\n          {alt}\\n          {width}\\n          {height}\\n        />\\n      </picture>\\n    </div>\\n  </div>\\n</Waypoint>\\n"],"names":[],"mappings":"AAwCO,+BAAG,CAAE,MAAM,4BAAC,CAAC,AAClB,eAAe,CAAE,MAAM,CACvB,QAAQ,CAAE,QAAQ,CAClB,GAAG,CAAE,CAAC,CACN,IAAI,CAAE,CAAC,CACP,KAAK,CAAE,IAAI,CACX,WAAW,CAAE,OAAO,AACtB,CAAC,AACD,KAAK,4BAAC,CAAC,AACL,MAAM,CAAE,KAAK,IAAI,CAAC,CAClB,UAAU,CAAE,OAAO,CAAC,MAAM,AAC5B,CAAC,AACD,YAAY,4BAAC,CAAC,AACZ,OAAO,CAAE,CAAC,CACV,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,CACZ,UAAU,CAAE,OAAO,CAAC,MAAM,CAAC,QAAQ,CACnC,gBAAgB,CAAE,IAAI,AACxB,CAAC,AACD,KAAK,4BAAC,CAAC,AACL,OAAO,CAAE,CAAC,CACV,UAAU,CAAE,OAAO,CAAC,MAAM,CAAC,QAAQ,CACnC,gBAAgB,CAAE,IAAI,AACxB,CAAC,AACD,qBAAO,CAAC,YAAY,cAAC,CAAC,AACpB,OAAO,CAAE,CAAC,AACZ,CAAC,AACD,qBAAO,CAAC,KAAK,cAAC,CAAC,AACb,OAAO,CAAE,CAAC,AACZ,CAAC"}`
+};
+var Image = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { c = "" } = $$props;
+  let { alt = "" } = $$props;
+  let { width = null } = $$props;
+  let { height = null } = $$props;
+  let { src: src2 = "" } = $$props;
+  let { srcset = "" } = $$props;
+  let { srcsetWebp = "" } = $$props;
+  let { ratio = "100%" } = $$props;
+  let { blur = true } = $$props;
+  let { sizes = "(max-width: 1000px) 100vw, 1000px" } = $$props;
+  let { offset = 0 } = $$props;
+  let { threshold = 1 } = $$props;
+  let { lazy = true } = $$props;
+  let { wrapperClass = "" } = $$props;
+  let { placeholderClass = "" } = $$props;
+  let { blurhash = null } = $$props;
+  let { blurhashSize = null } = $$props;
+  let { class: className = "" } = $$props;
+  let loaded = !lazy;
+  if ($$props.c === void 0 && $$bindings.c && c !== void 0)
+    $$bindings.c(c);
+  if ($$props.alt === void 0 && $$bindings.alt && alt !== void 0)
+    $$bindings.alt(alt);
+  if ($$props.width === void 0 && $$bindings.width && width !== void 0)
+    $$bindings.width(width);
+  if ($$props.height === void 0 && $$bindings.height && height !== void 0)
+    $$bindings.height(height);
+  if ($$props.src === void 0 && $$bindings.src && src2 !== void 0)
+    $$bindings.src(src2);
+  if ($$props.srcset === void 0 && $$bindings.srcset && srcset !== void 0)
+    $$bindings.srcset(srcset);
+  if ($$props.srcsetWebp === void 0 && $$bindings.srcsetWebp && srcsetWebp !== void 0)
+    $$bindings.srcsetWebp(srcsetWebp);
+  if ($$props.ratio === void 0 && $$bindings.ratio && ratio !== void 0)
+    $$bindings.ratio(ratio);
+  if ($$props.blur === void 0 && $$bindings.blur && blur !== void 0)
+    $$bindings.blur(blur);
+  if ($$props.sizes === void 0 && $$bindings.sizes && sizes !== void 0)
+    $$bindings.sizes(sizes);
+  if ($$props.offset === void 0 && $$bindings.offset && offset !== void 0)
+    $$bindings.offset(offset);
+  if ($$props.threshold === void 0 && $$bindings.threshold && threshold !== void 0)
+    $$bindings.threshold(threshold);
+  if ($$props.lazy === void 0 && $$bindings.lazy && lazy !== void 0)
+    $$bindings.lazy(lazy);
+  if ($$props.wrapperClass === void 0 && $$bindings.wrapperClass && wrapperClass !== void 0)
+    $$bindings.wrapperClass(wrapperClass);
+  if ($$props.placeholderClass === void 0 && $$bindings.placeholderClass && placeholderClass !== void 0)
+    $$bindings.placeholderClass(placeholderClass);
+  if ($$props.blurhash === void 0 && $$bindings.blurhash && blurhash !== void 0)
+    $$bindings.blurhash(blurhash);
+  if ($$props.blurhashSize === void 0 && $$bindings.blurhashSize && blurhashSize !== void 0)
+    $$bindings.blurhashSize(blurhashSize);
+  if ($$props.class === void 0 && $$bindings.class && className !== void 0)
+    $$bindings.class(className);
+  $$result.css.add(css$6);
+  return `${validate_component(Waypoint, "Waypoint").$$render($$result, {
+    class: wrapperClass,
+    style: "min-height: 100px; width: 100%;",
+    once: true,
+    threshold,
+    offset,
+    disabled: !lazy
+  }, {}, {
+    default: () => `<div style="${"position: relative; width: 100%;"}" class="${["svelte-25t9v1", loaded ? "loaded" : ""].join(" ").trim()}"><div style="${"position: relative; overflow: hidden;"}"><div style="${"width:100%;padding-bottom:" + escape2(ratio) + ";"}"></div>
+      ${blurhash ? `<canvas class="${"placeholder svelte-25t9v1"}"${add_attribute("width", blurhashSize.width, 0)}${add_attribute("height", blurhashSize.height, 0)}></canvas>` : `<img class="${[
+      "placeholder " + escape2(placeholderClass) + " svelte-25t9v1",
+      blur ? "blur" : ""
+    ].join(" ").trim()}"${add_attribute("src", src2, 0)}${add_attribute("alt", alt, 0)}>`}
+      <picture><source type="${"image/webp"}"${add_attribute("srcset", srcsetWebp, 0)}${add_attribute("sizes", sizes, 0)}>
+        <source${add_attribute("srcset", srcset, 0)}${add_attribute("sizes", sizes, 0)}>
+        <img${add_attribute("src", src2, 0)} class="${"main " + escape2(c) + " " + escape2(className) + " svelte-25t9v1"}"${add_attribute("alt", alt, 0)}${add_attribute("width", width, 0)}${add_attribute("height", height, 0)}></picture></div></div>`
+  })}`;
+});
 var css$5 = {
-  code: ".svg.link{opacity:0}.post-preview-link.svelte-11qqhz8:hover .svg.link{opacity:1}.post-preview-link.svelte-11qqhz8:hover img.svelte-11qqhz8{opacity:0.25}",
-  map: '{"version":3,"file":"PostPreview.svelte","sources":["PostPreview.svelte"],"sourcesContent":["<script>\\n\\timport BlogHeader from \'$lib/BlogHeader.svelte\';\\n\\timport LinkSVG from \'$lib/svgs/link.svelte\';\\n\\texport let post;\\n<\/script>\\n\\n<article>\\n\\t<a href={`/blog/${post.slug}`} class=\\"post-preview-link\\">\\n\\t\\t<div\\n\\t\\t\\tclass=\\"bg-bbuilds-black m-auto overflow-hidden rounded-xl h-48 relative w-full flex items-center justify-center text-bbuilds-gray\\"\\n\\t\\t>\\n\\t\\t\\t<img\\n\\t\\t\\t\\tclass=\\"object-cover absolute duration-200\\"\\n\\t\\t\\t\\tsrc={`/images/blog/${post.slug}/${post.image}`}\\n\\t\\t\\t\\talt={post.title}\\n\\t\\t\\t/>\\n\\t\\t\\t<LinkSVG />\\n\\t\\t</div>\\n\\t</a>\\n\\t<BlogHeader rawDate={post.date} title={post.title} tags={post.tags} postPreview={true} />\\n\\t<p>{post.excerpt}</p>\\n\\t<a class=\\"flex items-center underline\\" href={`/blog/${post.slug}`}>Read Post</a>\\n</article>\\n\\n<style>:global(.svg.link) {\\n  opacity: 0;\\n}\\n.post-preview-link:hover :global(.svg.link) {\\n  opacity: 1;\\n}\\n.post-preview-link:hover img {\\n  opacity: 0.25;\\n}</style>\\n"],"names":[],"mappings":"AAwBe,SAAS,AAAE,CAAC,AACzB,OAAO,CAAE,CAAC,AACZ,CAAC,AACD,iCAAkB,MAAM,CAAC,AAAQ,SAAS,AAAE,CAAC,AAC3C,OAAO,CAAE,CAAC,AACZ,CAAC,AACD,iCAAkB,MAAM,CAAC,GAAG,eAAC,CAAC,AAC5B,OAAO,CAAE,IAAI,AACf,CAAC"}'
+  code: ".svg.link{opacity:0}.post-preview.svelte-18v0504:hover .svg.link{opacity:1}.post-preview.svelte-18v0504:hover .img-wrapper{opacity:0.25}",
+  map: '{"version":3,"file":"PostPreview.svelte","sources":["PostPreview.svelte"],"sourcesContent":["<script>\\n\\timport BlogHeader from \'$lib/BlogHeader.svelte\';\\n\\timport LinkSVG from \'$lib/svgs/link.svelte\';\\n\\timport Image from \'svelte-image\';\\n\\n\\texport let post;\\n<\/script>\\n\\n<article class=\\"post-preview relative\\">\\n\\t<div\\n\\t\\tclass=\\"post-preview-image bg-bbuilds-black m-auto overflow-hidden rounded-xl h-48 relative w-full flex items-center justify-center text-bbuilds-gray relative transition duration-300 ease-in-out\\"\\n\\t>\\n\\t\\t<Image\\n\\t\\t\\tclass=\\"object-cover img\\"\\n\\t\\t\\twrapperClass=\\"object-cover absolute top-0 img-wrapper transition duration-300 ease-in-out\\"\\n\\t\\t\\talt={post.title}\\n\\t\\t\\tsrc={`/images/blog/${post.slug}/${post.image}`}\\n\\t\\t/>\\n\\t\\t<LinkSVG />\\n\\t</div>\\n\\t<a href={`/blog/${post.slug}`} class=\\"link-shield\\">\\n\\t\\t<BlogHeader rawDate={post.date} title={post.title} tags={post.tags} postPreview={true} />\\n\\t</a>\\n\\t<p>{post.excerpt}</p>\\n</article>\\n\\n<style>:global(.svg.link) {\\n  opacity: 0;\\n}\\n.post-preview:hover :global(.svg.link) {\\n  opacity: 1;\\n}\\n.post-preview:hover :global(.img-wrapper) {\\n  opacity: 0.25;\\n}</style>\\n"],"names":[],"mappings":"AA0Be,SAAS,AAAE,CAAC,AACzB,OAAO,CAAE,CAAC,AACZ,CAAC,AACD,4BAAa,MAAM,CAAC,AAAQ,SAAS,AAAE,CAAC,AACtC,OAAO,CAAE,CAAC,AACZ,CAAC,AACD,4BAAa,MAAM,CAAC,AAAQ,YAAY,AAAE,CAAC,AACzC,OAAO,CAAE,IAAI,AACf,CAAC"}'
 };
 var PostPreview = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let { post } = $$props;
   if ($$props.post === void 0 && $$bindings.post && post !== void 0)
     $$bindings.post(post);
   $$result.css.add(css$5);
-  return `<article><a${add_attribute("href", `/blog/${post.slug}`, 0)} class="${"post-preview-link svelte-11qqhz8"}"><div class="${"bg-bbuilds-black m-auto overflow-hidden rounded-xl h-48 relative w-full flex items-center justify-center text-bbuilds-gray"}"><img class="${"object-cover absolute duration-200 svelte-11qqhz8"}"${add_attribute("src", `/images/blog/${post.slug}/${post.image}`, 0)}${add_attribute("alt", post.title, 0)}>
-			${validate_component(Link, "LinkSVG").$$render($$result, {}, {}, {})}</div></a>
-	${validate_component(BlogHeader, "BlogHeader").$$render($$result, {
+  return `<article class="${"post-preview relative svelte-18v0504"}"><div class="${"post-preview-image bg-bbuilds-black m-auto overflow-hidden rounded-xl h-48 relative w-full flex items-center justify-center text-bbuilds-gray relative transition duration-300 ease-in-out"}">${validate_component(Image, "Image").$$render($$result, {
+    class: "object-cover img",
+    wrapperClass: "object-cover absolute top-0 img-wrapper transition duration-300 ease-in-out",
+    alt: post.title,
+    src: `/images/blog/${post.slug}/${post.image}`
+  }, {}, {})}
+		${validate_component(Link, "LinkSVG").$$render($$result, {}, {}, {})}</div>
+	<a${add_attribute("href", `/blog/${post.slug}`, 0)} class="${"link-shield"}">${validate_component(BlogHeader, "BlogHeader").$$render($$result, {
     rawDate: post.date,
     title: post.title,
     tags: post.tags,
     postPreview: true
-  }, {}, {})}
+  }, {}, {})}</a>
 	<p>${escape2(post.excerpt)}</p>
-	<a class="${"flex items-center underline"}"${add_attribute("href", `/blog/${post.slug}`, 0)}>Read Post</a>
 </article>`;
 });
 var css$4 = {
   code: ".svg.link{position:absolute;width:5rem;height:5rem}",
-  map: `{"version":3,"file":"RecentPosts.svelte","sources":["RecentPosts.svelte"],"sourcesContent":["<script>\\n\\timport { session } from '$app/stores';\\n    import PostPreview from \\"$lib/PostPreview.svelte\\";\\n\\n    const posts = $session.posts\\n<\/script>\\n\\n<section id=\\"recent-posts\\" class=\\"bg-bbuilds-gray py-10 lg:py-20\\">\\n    <div class=\\"container mx-auto px-4\\">\\n        <h2 class=\\" mt-6 mb-16 text-center text-h2\\">Blog</h2>\\n        <div class=\\"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10\\">\\n            {#each posts.slice(0, 3) as post, index}\\n                <div class=\\"posts-grid__item\\">\\n                    <PostPreview {post} />\\n                </div>\\n            {/each}\\n        </div>\\n        <div class=\\"text-center pt-10\\">\\n            <a href=\\"/blog\\" class=\\"button\\">View Blog</a>\\n        </div>\\n    </div>\\n</section>\\n\\n<style>:global(.svg.link) {\\n  position: absolute;\\n  width: 5rem;\\n  height: 5rem;\\n}</style>"],"names":[],"mappings":"AAuBe,SAAS,AAAE,CAAC,AACzB,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACd,CAAC"}`
+  map: `{"version":3,"file":"RecentPosts.svelte","sources":["RecentPosts.svelte"],"sourcesContent":["<script>\\n\\timport { session } from '$app/stores';\\n    import PostPreview from \\"$lib/PostPreview.svelte\\";\\n\\n    const posts = $session.posts\\n<\/script>\\n\\n<section id=\\"recent-posts\\" class=\\"bg-bbuilds-gray py-10 lg:py-20\\">\\n    <div class=\\"container mx-auto px-4\\">\\n        <h2 class=\\" mt-6 mb-16 text-center text-h2\\">Blog</h2>\\n        <div class=\\"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10\\">\\n            {#each posts.slice(0, 3) as post, index}\\n                <div class=\\"posts-grid__item\\">\\n                    <PostPreview {post} />\\n                </div>\\n            {/each}\\n        </div>\\n        <div class=\\"text-center pt-10\\">\\n            <a rel=\\"external\\" href=\\"/blog\\" class=\\"button\\">View Blog</a>\\n        </div>\\n    </div>\\n</section>\\n\\n<style>:global(.svg.link) {\\n  position: absolute;\\n  width: 5rem;\\n  height: 5rem;\\n}</style>"],"names":[],"mappings":"AAuBe,SAAS,AAAE,CAAC,AACzB,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACd,CAAC"}`
 };
 var RecentPosts = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $session, $$unsubscribe_session;
@@ -4310,13 +4557,13 @@ var RecentPosts = create_ssr_component(($$result, $$props, $$bindings, slots) =>
   return `<section id="${"recent-posts"}" class="${"bg-bbuilds-gray py-10 lg:py-20"}"><div class="${"container mx-auto px-4"}"><h2 class="${" mt-6 mb-16 text-center text-h2"}">Blog</h2>
         <div class="${"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10"}">${each(posts.slice(0, 3), (post, index2) => `<div class="${"posts-grid__item"}">${validate_component(PostPreview, "PostPreview").$$render($$result, { post }, {}, {})}
                 </div>`)}</div>
-        <div class="${"text-center pt-10"}"><a href="${"/blog"}" class="${"button"}">View Blog</a></div></div>
+        <div class="${"text-center pt-10"}"><a rel="${"external"}" href="${"/blog"}" class="${"button"}">View Blog</a></div></div>
 </section>`;
 });
 var Recommendations = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   return `<section id="${"street-cred"}" class="${"bg-bbuilds-yellow py-10 lg:py-20"}"><div class="${"container mx-auto px-4 text-center"}"><h2 class="${"sr-only"}">Branden Builds Reccomendation</h2>
-        <figure><blockquote cite="${"https://www.linkedin.com/in/branden-builds/"}"><p class="${"text-lg"}"><em>Branden is an incredibly talented full-stack developer who always approaches tasks with a calm and collected mindset, regardless a problem&#39;s size or complexity. His creative thinking and extensive knowledge has inspired me to learn front-end development myself. As a developer, he is well equipped to handle pressure and take on demanding projects, while never ceasing to better his own methodology. As a mentor, his passion for coding and patience to clearly explain processes make him an invaluable asset to any company.</em></p></blockquote>
-            <figcaption class="${"mt-4"}">\u2014 <cite><a href="${"https://www.linkedin.com/in/branden-builds/"}" class="${"underline"}" title="${"Aisha's Reccomendation"}" target="${"_blank"}" rel="${"nofollow"}">Aisha Frances Natividad</a></cite></figcaption></figure></div></section>`;
+        <figure><blockquote cite="${"https://www.linkedin.com/in/branden-builds/"}" data-aos="${"fade-up"}"><p class="${"text-lg"}"><em>Branden is an incredibly talented full-stack developer who always approaches tasks with a calm and collected mindset, regardless a problem&#39;s size or complexity. His creative thinking and extensive knowledge has inspired me to learn front-end development myself. As a developer, he is well equipped to handle pressure and take on demanding projects, while never ceasing to better his own methodology. As a mentor, his passion for coding and patience to clearly explain processes make him an invaluable asset to any company.</em></p></blockquote>
+            <figcaption class="${"mt-4"}">\u2014 <cite><a href="${"https://www.linkedin.com/in/branden-builds/"}" class="${"underline"}" title="${"Aisha's Reccomendation"}" target="${"_blank"}" rel="${"noopener noreferrer"}">Aisha Frances Natividad</a></cite></figcaption></figure></div></section>`;
 });
 async function load$1({ fetch: fetch2 }) {
   const [resServices, resSkills] = await Promise.all([fetch2("/api/services"), fetch2("/api/skillset")]);
@@ -4334,21 +4581,30 @@ var Routes = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.servicesData(servicesData);
   if ($$props.skillsData === void 0 && $$bindings.skillsData && skillsData !== void 0)
     $$bindings.skillsData(skillsData);
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: "Branden Builds Web Developer && Storyteller",
+    description: "Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories",
     keywords: "freelance web developer, frontend developer, backend developer, headless CMS, headless wordpress",
-    description: "Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.",
-    image: `images/brandenbuilds-opengraph.jpg`
+    type: "company",
+    jsonLd: {
+      "@type": "WebPage",
+      name: "Branden Builds Web Developer && Storyteller",
+      description: "Branden Builds specializes in building custom web development, headless wordpress solutions, and telling bad ass stories.",
+      publisher: {
+        "@type": "ProfilePage",
+        name: "Branden Build's Website"
+      }
+    }
   }, {}, {})}
 
 <article>${validate_component(Hero, "Hero").$$render($$result, {
     title: `Greetings I'm`,
     subtitle: `I enjoy building...`,
     serviceslist: [
-      "Engaging Experiences \u{1F981}",
+      "Engaging Experiences \u{1F52E}",
       "Lean Products \u26A1",
-      "Accelerated Brands \u{1F331}",
-      "Technical SEO \u{1F913}"
+      "Captivating Stories \u{1F331}",
+      "Scalable SEO \u{1F4C8}"
     ]
   }, {}, {})}
 
@@ -4386,11 +4642,19 @@ var Blockquote = create_ssr_component(($$result, $$props, $$bindings, slots) => 
 </blockquote>`;
 });
 var Headless_wordpress_development = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
-    title: "HeadLess WordPress Development | Branden Builds",
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
+    title: "Headless WordPress Development | Branden Builds",
+    description: "Custom built headless WordPress developement by Branden Builds",
     keywords: "branden builds, web developer, wordpress, headless wordpress",
-    description: "Custom built headless wordpress developement by Branden Builds",
-    image: `images/brandenbuilds-opengraph.jpg`
+    jsonLd: {
+      "@type": "WebPage",
+      "name": "Branden Builds Headless WP Services",
+      "description": "Custom built headless WordPress developement by Branden Builds",
+      "publisher": {
+        "@type": "ProfilePage",
+        "name": "Branden Build's Headless WP Services"
+      }
+    }
   }, {}, {})}
 
 <article><header id="${"services-hero"}" class="${"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 pb-20 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Custom Headless WordPress Development</h1>
@@ -4449,11 +4713,19 @@ var headlessWordpressDevelopment = /* @__PURE__ */ Object.freeze({
   "default": Headless_wordpress_development
 });
 var Wordpress_development = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: "Traditional WordPress Development Services | Branden Builds",
-    keywords: "wordpress, php, plugin development, theme development",
     description: "WordPress Development Services by Branden Builds",
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: "wordpress, php, plugin development, theme development",
+    jsonLd: {
+      "@type": "WebPage",
+      "name": "Branden Builds WordPress Services",
+      "description": "WordPress Development Services by Branden Builds",
+      "publisher": {
+        "@type": "ProfilePage",
+        "name": "Branden Build's Website Services"
+      }
+    }
   }, {}, {})}
 
 <article><header id="${"hero"}" class="${"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 pb-20 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Traditional WordPress Development</h1>
@@ -4506,11 +4778,19 @@ var Web_development = create_ssr_component(($$result, $$props, $$bindings, slots
   });
   if ($$props.skillsData === void 0 && $$bindings.skillsData && skillsData !== void 0)
     $$bindings.skillsData(skillsData);
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: "Website and Web App Development Services | Branden Builds",
-    keywords: "web development, frontend development, backend development",
     description: "Website and Web App Development by Branden Builds",
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: "web dev, frontend development, backend development, API development, fullstack development",
+    jsonLd: {
+      "@type": "WebPage",
+      "name": "Website and Web App Development Services | Branden Builds",
+      "description": "Website and Web App Development by Branden Builds",
+      "publisher": {
+        "@type": "ProfilePage",
+        "name": "Branden Build's Website Services"
+      }
+    }
   }, {}, {})}
 
 <article><header id="${"hero"}" class="${"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 pb-20 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Website and Web App Development</h1>
@@ -4557,11 +4837,19 @@ var webDevelopment = /* @__PURE__ */ Object.freeze({
   load
 });
 var Branding = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
-    title: "Branding and Story Telling Services | Branden Builds",
-    keywords: "branding, market strategy, story telling",
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
+    title: "Building Brands and Story Telling Services | Branden Builds",
     description: "Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence.",
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: "branding, market strategy, story telling",
+    jsonLd: {
+      "@type": "WebPage",
+      "name": "Branden Builds",
+      "description": "Building Brands and Story Telling Services",
+      "publisher": {
+        "@type": "ProfilePage",
+        "name": "Branden Build's Branding Services"
+      }
+    }
   }, {}, {})}
 
 <article><header id="${"hero"}" class="${"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 pb-20 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Brand Development and Story Telling</h1>
@@ -4614,7 +4902,7 @@ var branding = /* @__PURE__ */ Object.freeze({
 });
 var css$2 = {
   code: ".service.svelte-d20ok2:hover{transform:scale(1.05)}",
-  map: `{"version":3,"file":"services.svelte","sources":["services.svelte"],"sourcesContent":["<script>\\n\\timport Process from '$lib/Process.svelte';\\n\\timport BrandCube from '$lib/svgs/brandcube.svelte';\\n\\timport OpenGraph from '$lib/OpenGraph.svelte';\\n\\t\\n\\tconst services = [\\n\\t\\t{\\n\\t\\t\\ttitle: 'Web Development',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'Creating intuitive sexy client facing front ends while writing lean and clean structured backends.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'JavaScript Framework Development',\\n\\t\\t\\t\\t'back-end development',\\n\\t\\t\\t\\t'eCommerce',\\n\\t\\t\\t\\t'API integrations',\\n\\t\\t\\t\\t'content management system solutions'\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/web-development-illustration.svg',\\n\\t\\t\\turl: '/web-development'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'WordPress Solutions',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'WordPress dominates the web world and I come correct to tackle every aspect of the development ecosystem.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'Headlesss Wordpress / Jamstack Builds',\\n\\t\\t\\t\\t'Block Editor Development',\\n\\t\\t\\t\\t'traditional theme development',\\n\\t\\t\\t\\t'agency development training',\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/wordpress-development-illustration.svg',\\n\\t\\t\\turl: '/wordpress-development'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Branding',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'market research',\\n\\t\\t\\t\\t'brand strategy / positioning',\\n\\t\\t\\t\\t'brand identity',\\n\\t\\t\\t\\t'storytelling',\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/branding-service-illustration.svg',\\n\\t\\t\\turl: '/branding'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Search Engine Optimization',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'local ranking',\\n\\t\\t\\t\\t'on site optimization',\\n\\t\\t\\t\\t'technical seo analysis',\\n\\t\\t\\t\\t'complete SEO audit',\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/seo-service-illustration.svg',\\n\\t\\t\\turl: '/seo'\\n\\t\\t}\\n\\t];\\n<\/script>\\n<OpenGraph\\n\\ttitle={'Web Developemnt, SEO, and Branding Services from Branden Builds'}\\n\\tkeywords={'web dev, frontend development, backend development'}\\n\\tdescription=\\"Top notch web development, digital marketing, and branding services from Branden Builds.\\"\\n\\timage={\`images/brandenbuilds-opengraph.jpg\`}\\n/>\\n<section\\n\\tid=\\"services-hero\\"\\n\\tclass=\\"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n>\\n\\t<div class=\\"container mx-auto px-4 pb-20 relative z-10\\">\\n\\t\\t<h1 class=\\"text-xl md:text-3xl lg:max-w-2/3 mb-8\\">\\n\\t\\t\\tBranden Builds Web Development | Branding | SEO Freelance Services\\n\\t\\t</h1>\\n\\t\\t<blockquote class=\\"text-lg md:text-xl md:mb-6 lg:max-w-2/3 leading-snug\\">\\n\\t\\t\\t\\"modern problems require modern solutions\\" <cite class=\\"block text-md\\">-Dave Chappelle</cite>\\n\\t\\t</blockquote>\\n\\t\\t<a href=\\"/contact\\" class=\\"button mt-8 inline-block\\">Talk nerdy to me</a>\\n\\t</div>\\n\\t<div class=\\"hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4\\">\\n\\t\\t<BrandCube />\\n\\t</div>\\n</section>\\n<section id=\\"services-list\\" class=\\"bg-bbuilds-yellow py-10 lg:py-20\\">\\n\\t<div class=\\"mx-auto max-w-3xl px-4\\">\\n\\t\\t<ul>\\n\\t\\t\\t{#each services as service, index}\\n\\t\\t\\t\\t<li\\n\\t\\t\\t\\t\\tclass=\\"mb-10\\"\\n\\t\\t\\t\\t>\\n\\t\\t\\t\\t<a href={service.url} sveltekit:prefetch class=\\"service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out\\">\\n\\t\\t\\t\\t\\t<picture class=\\"md:p-8\\">\\n\\t\\t\\t\\t\\t\\t<img src={service.image} alt={\`\${service.title} Illustration\`} class=\\"w-1/4 md:w-100\\" />\\n\\t\\t\\t\\t\\t</picture>\\n\\t\\t\\t\\t\\t<div class=\\"py-8\\">\\n\\t\\t\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t\\t<h6 class=\\"text-xl font-semibold leading-none mb-4\\">\\n\\t\\t\\t\\t\\t\\t\\t{service.title}\\n\\t\\t\\t\\t\\t\\t</h6>\\n\\t\\t\\t\\t\\t\\t<p class=\\"mt-2\\">\\n\\t\\t\\t\\t\\t\\t\\t{service.tagline}\\n\\t\\t\\t\\t\\t\\t</p>\\n\\t\\t\\t\\t\\t\\t{#if service.specialities}\\n\\t\\t\\t\\t\\t\\t\\t<ul class=\\"mt-4 disc\\">\\n\\t\\t\\t\\t\\t\\t\\t\\t{#each service.specialities as item}\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t<li>{item}</li>\\n\\t\\t\\t\\t\\t\\t\\t\\t{/each}\\n\\t\\t\\t\\t\\t\\t\\t</ul>\\n\\t\\t\\t\\t\\t\\t{/if}\\n\\t\\t\\t\\t\\t</div>\\n\\t\\t\\t\\t</a>\\n\\t\\t\\t\\t</li>\\n\\t\\t\\t{/each}\\n\\t\\t</ul>\\n\\t</div>\\n</section>\\n<Process title={false} />\\n\\n<style>.service:hover {\\n  transform: scale(1.05);\\n}</style>\\n"],"names":[],"mappings":"AAuHO,sBAAQ,MAAM,AAAC,CAAC,AACrB,SAAS,CAAE,MAAM,IAAI,CAAC,AACxB,CAAC"}`
+  map: `{"version":3,"file":"services.svelte","sources":["services.svelte"],"sourcesContent":["<script>\\n\\timport MetaTags from '$lib/MetaTags.svelte';\\n\\timport Process from '$lib/Process.svelte';\\n\\timport BrandCube from '$lib/svgs/brandcube.svelte';\\n\\n\\tconst services = [\\n\\t\\t{\\n\\t\\t\\ttitle: 'Web Development',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'Creating intuitive sexy client facing front ends while writing lean and clean structured backends.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'JavaScript Framework Development',\\n\\t\\t\\t\\t'back-end development',\\n\\t\\t\\t\\t'eCommerce',\\n\\t\\t\\t\\t'API integrations',\\n\\t\\t\\t\\t'content management system solutions'\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/web-development-illustration.svg',\\n\\t\\t\\turl: '/web-development'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'WordPress Solutions',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'WordPress dominates the web world and I come correct to tackle every aspect of the development ecosystem.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'Headlesss Wordpress / Jamstack Builds',\\n\\t\\t\\t\\t'Block Editor Development',\\n\\t\\t\\t\\t'traditional theme development',\\n\\t\\t\\t\\t'agency development training'\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/wordpress-development-illustration.svg',\\n\\t\\t\\turl: '/wordpress-development'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Branding',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'market research',\\n\\t\\t\\t\\t'brand strategy / positioning',\\n\\t\\t\\t\\t'brand identity',\\n\\t\\t\\t\\t'storytelling'\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/branding-service-illustration.svg',\\n\\t\\t\\turl: '/branding'\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\ttitle: 'Search Engine Optimization',\\n\\t\\t\\ttagline:\\n\\t\\t\\t\\t'Telling a story requires an insightful, handcrafted presence propelled by emotional intelligence.',\\n\\t\\t\\tspecialities: [\\n\\t\\t\\t\\t'local ranking',\\n\\t\\t\\t\\t'on site optimization',\\n\\t\\t\\t\\t'technical seo analysis',\\n\\t\\t\\t\\t'complete SEO audit'\\n\\t\\t\\t],\\n\\t\\t\\timage: '/images/seo-service-illustration.svg',\\n\\t\\t\\turl: '/seo'\\n\\t\\t}\\n\\t];\\n<\/script>\\n\\n<MetaTags\\n\\ttitle=\\"Web Developemnt, SEO, and Branding Services from Branden Builds\\"\\n\\tdescription=\\"Top notch web development, digital marketing, and branding services from Branden Builds.\\"\\n\\tkeywords=\\"web dev, frontend development, backend development, seo services\\"\\n\\tjsonLd={{\\n\\t\\t'@type': 'WebPage',\\n\\t\\tname: 'Branden Builds WordPress Services',\\n\\t\\tdescription:\\n\\t\\t\\t'Top notch web development, digital marketing, and branding services from Branden Builds.',\\n\\t\\tpublisher: {\\n\\t\\t\\t'@type': 'ProfilePage',\\n\\t\\t\\tname: \\"Branden Build's Website Services\\"\\n\\t\\t}\\n\\t}}\\n/>\\n<section\\n\\tid=\\"services-hero\\"\\n\\tclass=\\"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n>\\n\\t<div class=\\"container mx-auto px-4 pb-20 relative z-10\\">\\n\\t\\t<h1 class=\\"text-xl md:text-3xl lg:max-w-2/3 mb-8\\">\\n\\t\\t\\tBranden Builds Web Development | Branding | SEO Freelance Services\\n\\t\\t</h1>\\n\\t\\t<blockquote class=\\"text-lg md:text-xl md:mb-6 lg:max-w-2/3 leading-snug\\">\\n\\t\\t\\t\\"modern problems require modern solutions\\" <cite class=\\"block text-md\\">-Dave Chappelle</cite>\\n\\t\\t</blockquote>\\n\\t\\t<a href=\\"/contact\\" class=\\"button mt-8 inline-block\\"\\n\\t\\t\\t>Talk nerdy to me</a\\n\\t\\t>\\n\\t</div>\\n\\t<div class=\\"hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4\\">\\n\\t\\t<BrandCube />\\n\\t</div>\\n</section>\\n<section id=\\"services-list\\" class=\\"bg-bbuilds-yellow py-10 lg:py-20\\">\\n\\t<div class=\\"mx-auto max-w-3xl px-4\\">\\n\\t\\t<ul>\\n\\t\\t\\t{#each services as service, index}\\n\\t\\t\\t\\t<li\\n\\t\\t\\t\\t\\tclass=\\"mb-10 service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out relative\\"\\n\\t\\t\\t\\t\\t\\n\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t<picture class=\\"md:p-8\\">\\n\\t\\t\\t\\t\\t\\t<img src={service.image} alt={\`\${service.title} Illustration\`} class=\\"w-1/4 md:w-100\\" />\\n\\t\\t\\t\\t\\t</picture>\\n\\t\\t\\t\\t\\t<div class=\\"py-8\\">\\n\\t\\t\\t\\t\\t\\t<a\\n\\t\\t\\t\\t\\t\\t\\thref={service.url}\\n\\t\\t\\t\\t\\t\\t\\tclass=\\"link-shield\\"\\n\\t\\t\\t\\t\\t\\t>\\n\\t\\t\\t\\t\\t\\t\\t<h6 class=\\"text-xl font-semibold leading-none mb-4\\">\\n\\t\\t\\t\\t\\t\\t\\t\\t{service.title}\\n\\t\\t\\t\\t\\t\\t\\t</h6>\\n\\t\\t\\t\\t\\t\\t</a>\\n\\t\\t\\t\\t\\t\\t<p class=\\"mt-2\\">\\n\\t\\t\\t\\t\\t\\t\\t{service.tagline}\\n\\t\\t\\t\\t\\t\\t</p>\\n\\t\\t\\t\\t\\t\\t{#if service.specialities}\\n\\t\\t\\t\\t\\t\\t\\t<ul class=\\"mt-4 disc\\">\\n\\t\\t\\t\\t\\t\\t\\t\\t{#each service.specialities as item}\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t<li>{item}</li>\\n\\t\\t\\t\\t\\t\\t\\t\\t{/each}\\n\\t\\t\\t\\t\\t\\t\\t</ul>\\n\\t\\t\\t\\t\\t\\t{/if}\\n\\t\\t\\t\\t\\t</div>\\n\\t\\t\\t\\t</li>\\n\\t\\t\\t{/each}\\n\\t\\t</ul>\\n\\t</div>\\n</section>\\n<Process title={false} />\\n\\n<style>.service:hover {\\n  transform: scale(1.05);\\n}</style>\\n"],"names":[],"mappings":"AAsIO,sBAAQ,MAAM,AAAC,CAAC,AACrB,SAAS,CAAE,MAAM,IAAI,CAAC,AACxB,CAAC"}`
 };
 var Services = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   const services2 = [
@@ -4669,23 +4957,31 @@ var Services = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     }
   ];
   $$result.css.add(css$2);
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: "Web Developemnt, SEO, and Branding Services from Branden Builds",
-    keywords: "web dev, frontend development, backend development",
     description: "Top notch web development, digital marketing, and branding services from Branden Builds.",
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: "web dev, frontend development, backend development, seo services",
+    jsonLd: {
+      "@type": "WebPage",
+      name: "Branden Builds WordPress Services",
+      description: "Top notch web development, digital marketing, and branding services from Branden Builds.",
+      publisher: {
+        "@type": "ProfilePage",
+        name: "Branden Build's Website Services"
+      }
+    }
   }, {}, {})}
 <section id="${"services-hero"}" class="${"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 pb-20 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Branden Builds Web Development | Branding | SEO Freelance Services
 		</h1>
 		<blockquote class="${"text-lg md:text-xl md:mb-6 lg:max-w-2/3 leading-snug"}">&quot;modern problems require modern solutions&quot; <cite class="${"block text-md"}">-Dave Chappelle</cite></blockquote>
 		<a href="${"/contact"}" class="${"button mt-8 inline-block"}">Talk nerdy to me</a></div>
 	<div class="${"hero-brand-cube absolute right-0 bottom-0 max-w-1/2 md:max-w-1/4"}">${validate_component(Brandcube, "BrandCube").$$render($$result, {}, {}, {})}</div></section>
-<section id="${"services-list"}" class="${"bg-bbuilds-yellow py-10 lg:py-20"}"><div class="${"mx-auto max-w-3xl px-4"}"><ul>${each(services2, (service, index2) => `<li class="${"mb-10"}"><a${add_attribute("href", service.url, 0)} sveltekit:prefetch class="${"service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out svelte-d20ok2"}"><picture class="${"md:p-8"}"><img${add_attribute("src", service.image, 0)}${add_attribute("alt", `${service.title} Illustration`, 0)} class="${"w-1/4 md:w-100"}"></picture>
-					<div class="${"py-8"}"><h6 class="${"text-xl font-semibold leading-none mb-4"}">${escape2(service.title)}</h6>
+<section id="${"services-list"}" class="${"bg-bbuilds-yellow py-10 lg:py-20"}"><div class="${"mx-auto max-w-3xl px-4"}"><ul>${each(services2, (service, index2) => `<li class="${"mb-10 service block md:flex items-center p-4 border border-bbuilds-black rounded w-full h-full transition duration-300 ease-in-out relative svelte-d20ok2"}"><picture class="${"md:p-8"}"><img${add_attribute("src", service.image, 0)}${add_attribute("alt", `${service.title} Illustration`, 0)} class="${"w-1/4 md:w-100"}"></picture>
+					<div class="${"py-8"}"><a${add_attribute("href", service.url, 0)} class="${"link-shield"}"><h6 class="${"text-xl font-semibold leading-none mb-4"}">${escape2(service.title)}
+							</h6></a>
 						<p class="${"mt-2"}">${escape2(service.tagline)}</p>
 						${service.specialities ? `<ul class="${"mt-4 disc"}">${each(service.specialities, (item) => `<li>${escape2(item)}</li>`)}
-							</ul>` : ``}
-					</div></a>
+							</ul>` : ``}</div>
 				</li>`)}</ul></div></section>
 ${validate_component(Process, "Process").$$render($$result, { title: false }, {}, {})}`;
 });
@@ -4695,21 +4991,22 @@ var services = /* @__PURE__ */ Object.freeze({
   "default": Services
 });
 var Contact = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $page, $$unsubscribe_page;
-  $$unsubscribe_page = subscribe(page, (value) => $page = value);
-  let { url = `https://${$page.host}${$page.path}` } = $$props;
-  if ($$props.url === void 0 && $$bindings.url && url !== void 0)
-    $$bindings.url(url);
-  $$unsubscribe_page();
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: "Contact Branden Builds",
-    keywords: "branden builds, web developer, frontend developer, backend developer",
     description: "Contact branden builds for all of your web services.",
-    url,
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: "branden builds, web developer, frontend developer, backend developer",
+    jsonLd: {
+      "@type": "WebPage",
+      "name": "Contact Branden Builds",
+      "description": "Contact branden builds for all of your web services.",
+      "publisher": {
+        "@type": "ProfilePage",
+        "name": "Branden Build's Website Services"
+      }
+    }
   }, {}, {})}
 
-<article><section id="${"contact-hero"}" class="${"theme-full-height bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Contact Branden Builds</h1>
+<article><section id="${"contact-hero"}" class="${"py-20 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Contact Branden Builds</h1>
 			<form name="${"bbuilds-contact"}" class="${"md:max-w-1/2"}" action="${"https://formspree.io/f/xjvjpbqb"}" method="${"POST"}"><ul><li class="${"mb-4"}"><label class="${"block mb-2"}" for="${"name"}">Name*</label>
 						<input id="${"name"}" class="${"block bg-bbuilds-gray w-full p-2 text-bbuilds-black"}" type="${"text"}" autocomplete="${"name"}" name="${"name"}"></li>
 					<li class="${"mb-4 mb-2"}"><label for="${"email"}" class="${"block mb-2"}">E-Mail*</label>
@@ -4726,7 +5023,7 @@ var contact = /* @__PURE__ */ Object.freeze({
 });
 var css$1 = {
   code: ".hero.svelte-1qd0x0h{height:35vh;min-height:200px}.hero-brand-cube.svelte-1qd0x0h{max-width:20%}.svg.link{position:absolute;width:5rem;height:5rem}",
-  map: `{"version":3,"file":"index.svelte","sources":["index.svelte"],"sourcesContent":["<script>\\n\\timport { session } from '$app/stores';\\n    import PostPreview from \\"$lib/PostPreview.svelte\\";\\n    import { page } from '$app/stores';\\n\\timport OpenGraph from '$lib/OpenGraph.svelte';\\n\\timport BrandCube from '$lib/svgs/brandcube.svelte';\\n\\texport let url = \`https://\${$page.host}\${$page.path}\`;\\n\\n    const posts = $session.posts\\n<\/script>\\n\\n<OpenGraph\\n\\ttitle={'Branden Builds Blog'}\\n\\tkeywords={'frontend posts, backend posts, technical SEO articles'}\\n\\tdescription=\\"A blog that has content on full stack web development, technical SEO, and branding.\\"\\n\\t{url}\\n\\timage={\`images/brandenbuilds-opengraph.jpg\`}\\n/>\\n\\n\\n<section\\n\\t\\tid=\\"blog-hero\\"\\n\\t\\tclass=\\"hero bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n\\t>\\n\\t\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t\\t<h1 class=\\"mb-8\\">Branden Builds Blog</h1>\\n            <p class=\\"md:w-1/2\\">Read articles and posts on web development, SEO, and branding.</p>\\n\\t\\t</div>\\n\\t\\t<div class=\\"hero-brand-cube hidden md:block absolute right-0 bottom-0\\">\\n\\t\\t\\t<BrandCube />\\n\\t\\t</div>\\n\\t</section>\\n\\n<section id=\\"recent-posts\\" class=\\"bg-bbuilds-gray py-20\\">\\n    <div class=\\"container mx-auto px-4\\">\\n        <h2 class=\\"mb-16 text-center text-h2\\">Articles</h2>\\n        <div class=\\"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10\\">\\n            {#each posts as post, index}\\n                <div class=\\"posts-grid__item\\">\\n                    <PostPreview {post} />\\n                </div>\\n            {/each}\\n        </div>\\n    </div>\\n</section>\\n\\n<style>.hero {\\n  height: 35vh;\\n  min-height: 200px;\\n}\\n.hero-brand-cube {\\n  max-width: 20%;\\n}\\n:global(.svg.link) {\\n  position: absolute;\\n  width: 5rem;\\n  height: 5rem;\\n}</style>"],"names":[],"mappings":"AA8CO,KAAK,eAAC,CAAC,AACZ,MAAM,CAAE,IAAI,CACZ,UAAU,CAAE,KAAK,AACnB,CAAC,AACD,gBAAgB,eAAC,CAAC,AAChB,SAAS,CAAE,GAAG,AAChB,CAAC,AACO,SAAS,AAAE,CAAC,AAClB,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACd,CAAC"}`
+  map: `{"version":3,"file":"index.svelte","sources":["index.svelte"],"sourcesContent":["<script>\\n\\timport { session } from '$app/stores';\\n    import MetaTags from '$lib/MetaTags.svelte';\\n    import PostPreview from \\"$lib/PostPreview.svelte\\";\\n    import { page } from '$app/stores';\\n\\timport BrandCube from '$lib/svgs/brandcube.svelte';\\n\\texport let url = \`https://\${$page.host}\${$page.path}\`;\\n\\n    const posts = $session.posts\\n<\/script>\\n\\n<MetaTags\\n\\ttitle=\\"Branden Builds Blog\\"\\n\\tdescription=\\"A blog that has content on full stack web development, technical SEO, and branding.\\"\\n\\tkeywords='frontend posts, backend posts, technical SEO articles'\\n\\topenGraph={{\\n\\t\\turl,\\n\\t\\ttitle: 'Branden Builds Blog',\\n\\t\\tdescription: 'A blog that has content on full stack web development, technical SEO, and branding.',\\n\\t\\timages: [\\n\\t\\t\\t{\\n\\t\\t\\t\\turl: 'images/brandenbuilds-opengraph.jpg',\\n\\t\\t\\t\\twidth: 800,\\n\\t\\t\\t\\theight: 600,\\n\\t\\t\\t\\talt: 'Branden Builds Website Development Services'\\n\\t\\t\\t},\\n\\t\\t],\\n\\t\\tsite_name: 'Branden Builds'\\n\\t}},\\n\\tjsonLd={{\\n\\t\\t\\"@type\\": \\"WebPage\\",\\n\\t\\t\\"name\\": \\"Branden Builds Blog\\",\\n\\t\\t\\"description\\": \\"A blog that has content on full stack web development, technical SEO, and branding.\\",\\n\\t\\t\\"publisher\\": {\\n\\t\\t\\t\\"@type\\": \\"ProfilePage\\",\\n\\t\\t\\t\\"name\\": \\"Branden Builds\\"\\n\\t\\t}\\n\\t}}\\n/>\\n\\n\\n<section\\n\\t\\tid=\\"blog-hero\\"\\n\\t\\tclass=\\"hero bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n\\t>\\n\\t\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t\\t<h1 class=\\"mb-8\\">Branden Builds Blog</h1>\\n            <p class=\\"md:w-1/2\\">Read articles and posts on web development, SEO, and branding.</p>\\n\\t\\t</div>\\n\\t\\t<div class=\\"hero-brand-cube hidden md:block absolute right-0 bottom-0\\">\\n\\t\\t\\t<BrandCube />\\n\\t\\t</div>\\n\\t</section>\\n\\n<section id=\\"recent-posts\\" class=\\"bg-bbuilds-gray py-20\\">\\n    <div class=\\"container mx-auto px-4\\">\\n        <h2 class=\\"mb-16 text-center text-h2\\">Articles</h2>\\n        <div class=\\"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10\\">\\n            {#each posts as post, index}\\n                <div class=\\"posts-grid__item\\">\\n                    <PostPreview {post} />\\n                </div>\\n            {/each}\\n        </div>\\n    </div>\\n</section>\\n\\n<style>.hero {\\n  height: 35vh;\\n  min-height: 200px;\\n}\\n.hero-brand-cube {\\n  max-width: 20%;\\n}\\n:global(.svg.link) {\\n  position: absolute;\\n  width: 5rem;\\n  height: 5rem;\\n}</style>"],"names":[],"mappings":"AAmEO,KAAK,eAAC,CAAC,AACZ,MAAM,CAAE,IAAI,CACZ,UAAU,CAAE,KAAK,AACnB,CAAC,AACD,gBAAgB,eAAC,CAAC,AAChB,SAAS,CAAE,GAAG,AAChB,CAAC,AACO,SAAS,AAAE,CAAC,AAClB,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACd,CAAC"}`
 };
 var Blog = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $session, $$unsubscribe_session;
@@ -4740,12 +5037,33 @@ var Blog = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   $$result.css.add(css$1);
   $$unsubscribe_session();
   $$unsubscribe_page();
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: "Branden Builds Blog",
-    keywords: "frontend posts, backend posts, technical SEO articles",
     description: "A blog that has content on full stack web development, technical SEO, and branding.",
-    url,
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: "frontend posts, backend posts, technical SEO articles",
+    openGraph: {
+      url,
+      title: "Branden Builds Blog",
+      description: "A blog that has content on full stack web development, technical SEO, and branding.",
+      images: [
+        {
+          url: "images/brandenbuilds-opengraph.jpg",
+          width: 800,
+          height: 600,
+          alt: "Branden Builds Website Development Services"
+        }
+      ],
+      site_name: "Branden Builds"
+    } + ",",
+    jsonLd: {
+      "@type": "WebPage",
+      "name": "Branden Builds Blog",
+      "description": "A blog that has content on full stack web development, technical SEO, and branding.",
+      "publisher": {
+        "@type": "ProfilePage",
+        "name": "Branden Builds"
+      }
+    }
   }, {}, {})}
 
 
@@ -4765,7 +5083,7 @@ var index = /* @__PURE__ */ Object.freeze({
 });
 var css = {
   code: ".hero-brand-cube.svelte-1yr9s0y{max-width:20%}.svg.link{position:absolute;width:5rem;height:5rem}",
-  map: '{"version":3,"file":"[tag].svelte","sources":["[tag].svelte"],"sourcesContent":["<script>\\n\\timport { page, session } from \'$app/stores\';\\n\\timport OpenGraph from \'$lib/OpenGraph.svelte\';\\n\\timport BrandCube from \'$lib/svgs/brandcube.svelte\';\\n\\timport PostPreview from \'$lib/PostPreview.svelte\';\\n\\n\\texport let tag = $page.params.tag;\\n\\texport let url = `https://${$page.host}${$page.path}`;\\n\\n\\tconst posts = $session.posts;\\n\\tconsole.log(\'posts\', posts);\\n\\tconst filteredTagPosts = posts.filter((post) => {\\n\\t\\treturn post.tags.includes(tag);\\n\\t});\\n<\/script>\\n\\n<OpenGraph\\n\\ttitle={`Posts tagged ${tag} on Branden Builds Blog `}\\n\\tkeywords={`frontend posts, backend posts, technical SEO articles tagged ${tag}`}\\n\\tdescription={`Read Branden Build\'s articles on ${tag}`}\\n\\t{url}\\n\\timage={`images/brandenbuilds-opengraph.jpg`}\\n/>\\n\\n<section\\n\\tid=\\"tag-hero\\"\\n\\tclass=\\"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n>\\n\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t<h1 class=\\"text-xl md:text-3xl mb-8 md:w-1/2\\">Branden Builds Blog Posts Tagged: {tag}</h1>\\n\\t</div>\\n\\t<div class=\\"hero-brand-cube hidden md:block absolute right-0 bottom-0\\">\\n\\t\\t<BrandCube />\\n\\t</div>\\n</section>\\n\\n<section\\n\\tid=\\"tagged-posts\\"\\n\\tclass=\\"bg-bbuilds-gray py-10 lg:py-20\\"\\n>\\n\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t<h2 class=\\" mt-6 mb-16 text-center text-h2\\">Articles Tagged: {tag}</h2>\\n\\t\\t<div class=\\"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10\\">\\n\\t\\t\\t{#each filteredTagPosts as post}\\n\\t\\t\\t\\t<div class=\\"posts-grid__item\\">\\n\\t\\t\\t\\t\\t<PostPreview {post} />\\n\\t\\t\\t\\t</div>\\n\\t\\t\\t{/each}\\n\\t\\t</div>\\n\\t</div>\\n</section>\\n\\n<style>.hero-brand-cube {\\n  max-width: 20%;\\n}\\n:global(.svg.link) {\\n  position: absolute;\\n  width: 5rem;\\n  height: 5rem;\\n}</style>\\n"],"names":[],"mappings":"AAoDO,gBAAgB,eAAC,CAAC,AACvB,SAAS,CAAE,GAAG,AAChB,CAAC,AACO,SAAS,AAAE,CAAC,AAClB,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACd,CAAC"}'
+  map: '{"version":3,"file":"[tag].svelte","sources":["[tag].svelte"],"sourcesContent":["<script>\\n\\timport { page, session } from \'$app/stores\';\\n\\timport MetaTags from \'$lib/MetaTags.svelte\';\\n\\timport BrandCube from \'$lib/svgs/brandcube.svelte\';\\n\\timport PostPreview from \'$lib/PostPreview.svelte\';\\n\\n\\texport let tag = $page.params.tag;\\n\\n\\tconst posts = $session.posts;\\n\\tconsole.log(\'posts\', posts);\\n\\tconst filteredTagPosts = posts.filter((post) => {\\n\\t\\treturn post.tags.includes(tag);\\n\\t});\\n<\/script>\\n\\n<MetaTags\\n\\ttitle={`Posts tagged ${tag} on Branden Builds Blog `}\\n\\tdescription={`Read Branden Build\'s articles on ${tag}`}\\n\\tkeywords={`frontend posts, backend posts, technical SEO articles tagged ${tag}`}\\n/>\\n\\n\\n<!-- <OpenGraph\\n\\ttitle={`Posts tagged ${tag} on Branden Builds Blog `}\\n\\tkeywords={`frontend posts, backend posts, technical SEO articles tagged ${tag}`}\\n\\tdescription={`Read Branden Build\'s articles on ${tag}`}\\n\\t{url}\\n\\timage={`images/brandenbuilds-opengraph.jpg`}\\n/> -->\\n\\n<section\\n\\tid=\\"tag-hero\\"\\n\\tclass=\\"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative\\"\\n>\\n\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t<h1 class=\\"text-xl md:text-3xl mb-8 md:w-1/2\\">Branden Builds Blog Posts Tagged: {tag}</h1>\\n\\t</div>\\n\\t<div class=\\"hero-brand-cube hidden md:block absolute right-0 bottom-0\\">\\n\\t\\t<BrandCube />\\n\\t</div>\\n</section>\\n\\n<section\\n\\tid=\\"tagged-posts\\"\\n\\tclass=\\"bg-bbuilds-gray py-10 lg:py-20\\"\\n>\\n\\t<div class=\\"container mx-auto px-4\\">\\n\\t\\t<h2 class=\\" mt-6 mb-16 text-center text-h2\\">Articles Tagged: {tag}</h2>\\n\\t\\t<div class=\\"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10\\">\\n\\t\\t\\t{#each filteredTagPosts as post}\\n\\t\\t\\t\\t<div class=\\"posts-grid__item\\">\\n\\t\\t\\t\\t\\t<PostPreview {post} />\\n\\t\\t\\t\\t</div>\\n\\t\\t\\t{/each}\\n\\t\\t</div>\\n\\t</div>\\n</section>\\n\\n<style>.hero-brand-cube {\\n  max-width: 20%;\\n}\\n:global(.svg.link) {\\n  position: absolute;\\n  width: 5rem;\\n  height: 5rem;\\n}</style>\\n"],"names":[],"mappings":"AA0DO,gBAAgB,eAAC,CAAC,AACvB,SAAS,CAAE,GAAG,AAChB,CAAC,AACO,SAAS,AAAE,CAAC,AAClB,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACd,CAAC"}'
 };
 var U5Btagu5D = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $session, $$unsubscribe_session;
@@ -4773,7 +5091,6 @@ var U5Btagu5D = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   $$unsubscribe_session = subscribe(session, (value) => $session = value);
   $$unsubscribe_page = subscribe(page, (value) => $page = value);
   let { tag = $page.params.tag } = $$props;
-  let { url = `https://${$page.host}${$page.path}` } = $$props;
   const posts = $session.posts;
   console.log("posts", posts);
   const filteredTagPosts = posts.filter((post) => {
@@ -4781,18 +5098,17 @@ var U5Btagu5D = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   });
   if ($$props.tag === void 0 && $$bindings.tag && tag !== void 0)
     $$bindings.tag(tag);
-  if ($$props.url === void 0 && $$bindings.url && url !== void 0)
-    $$bindings.url(url);
   $$result.css.add(css);
   $$unsubscribe_session();
   $$unsubscribe_page();
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: `Posts tagged ${tag} on Branden Builds Blog `,
-    keywords: `frontend posts, backend posts, technical SEO articles tagged ${tag}`,
     description: `Read Branden Build's articles on ${tag}`,
-    url,
-    image: `images/brandenbuilds-opengraph.jpg`
+    keywords: `frontend posts, backend posts, technical SEO articles tagged ${tag}`
   }, {}, {})}
+
+
+
 
 <section id="${"tag-hero"}" class="${"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4"}"><h1 class="${"text-xl md:text-3xl mb-8 md:w-1/2"}">Branden Builds Blog Posts Tagged: ${escape2(tag)}</h1></div>
 	<div class="${"hero-brand-cube hidden md:block absolute right-0 bottom-0 svelte-1yr9s0y"}">${validate_component(Brandcube, "BrandCube").$$render($$result, {}, {}, {})}</div></section>
@@ -4808,12 +5124,22 @@ var _tag_ = /* @__PURE__ */ Object.freeze({
   "default": U5Btagu5D
 });
 var Seo = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `${validate_component(OpenGraph, "OpenGraph").$$render($$result, {
+  return `${validate_component(MetaTags, "MetaTags").$$render($$result, {
     title: "Search Engine Optimization Services | Branden Builds",
+    description: "Call everyone a peasant as they rank below you - SEO services by Branden Builds",
     keywords: "seo, search engine optimization, local seo, technical seo",
-    description: "Top ranking SEO services by Branden Builds",
-    image: `images/brandenbuilds-opengraph.jpg`
+    jsonLd: {
+      "@type": "WebPage",
+      "name": "Branden Builds SEO Services",
+      "description": "Call everyone a peasant as they rank below you - SEO services by Branden Builds",
+      "publisher": {
+        "@type": "ProfilePage",
+        "name": "Branden Build's SEO Services"
+      }
+    }
   }, {}, {})}
+
+
 
 <article><header id="${"hero"}" class="${"py-16 bg-bbuilds-black text-bbuilds-gray flex flex-wrap items-center relative"}"><div class="${"container mx-auto px-4 pb-20 relative z-10"}"><h1 class="${"text-xl md:text-3xl lg:max-w-2/3 mb-8"}">Search Engine Optimization Services</h1>
 			<p class="${"md:w-1/2"}">To excel at search engine optimization, one must understand the technical action needed to
@@ -4874,14 +5200,14 @@ var Seo = create_ssr_component(($$result, $$props, $$bindings, slots) => {
 			<h2>Local SEO</h2>
 			<p>Getting on the map is easy, dominating the map takes skill. Since 2015, over <a href="${"https://searchengineland.com/report-nearly-60-percent-searches-now-mobile-devices-255025"}" target="${"_blank"}" rel="${"noopener noreferrer nofollow"}">60% of searches have been mobile</a>
 				with research showing that
-				<a href="${"https://www.searchenginewatch.com/2014/04/09/80-of-local-searches-on-mobile-phones-convert-study/"}" target="${"_blank"}" rel="${"noopener noreferrer nofollow"}">80% of local searches on mobile phones convert</a>. We can safely admit these numbers have increased since 2015 and will only continue. This
+				<a href="${"https://www.searchenginewatch.com/2014/04/09/80-of-local-searches-on-mobile-phones-convert-study/"}" target="${"_blank"}" rel="${"noopener noreferrer nofollow external"}">80% of local searches on mobile phones convert</a>. We can safely admit these numbers have increased since 2015 and will only continue. This
 				is one of the most important marketing strategies fo a local business ready to connect to
 				potential buyers.
 			</p>
 			<p>Some things we can focus on here:</p>
 			<ul><li>Google My Business (GMB) page optimization</li>
 				<li>Google My Business Posts</li>
-				<li><a href="${"https://developers.google.com/search/docs/advanced/structured-data/local-business"}" target="${"_blank"}" rel="${"noopener noreferrer nofollow"}">Local Business Schema Markup</a></li>
+				<li><a href="${"https://developers.google.com/search/docs/advanced/structured-data/local-business"}" target="${"_blank"}" rel="${"noopener noreferrer nofollow external"}">Local Business Schema Markup</a></li>
 				<li>Spam Fighting</li></ul></div></section></article>`;
 });
 var seo = /* @__PURE__ */ Object.freeze({
