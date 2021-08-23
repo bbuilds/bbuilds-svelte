@@ -3896,7 +3896,7 @@ async function get$2() {
         },
         {
           title: "Search Engine Optimization",
-          copy: "Onpage, Local, Analyics Analysis",
+          copy: "Onpage, Local, Analytics Analysis",
           url: "/seo"
         }
       ]
