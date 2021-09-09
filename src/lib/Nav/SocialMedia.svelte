@@ -16,7 +16,7 @@
 
 <ul class="flex">
 	{#each socialItems as link}
-		<li class="mr-2">
+		<li class="mr-6 md:mr-2">
 			<a
 				href={link.href}
 				target="_blank"
