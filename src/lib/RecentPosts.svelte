@@ -8,7 +8,7 @@
 <section id="recent-posts" class="bg-bbuilds-gray py-10 lg:py-20">
     <div class="container mx-auto px-4">
         <h2 class=" mt-6 mb-16 text-center text-h2">Blog</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-x-4">
             {#each posts.slice(0, 3) as post, index}
                 <div class="posts-grid__item">
                     <PostPreview {post} />
