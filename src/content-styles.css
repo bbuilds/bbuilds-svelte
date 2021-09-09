@@ -50,3 +50,16 @@ ul.disc {
 ul.disc > li {
 	padding-left: 0.1em;
 }
+
+pre {
+	padding: 1.25em;
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+
+	tab-size: 2;
+	overflow-x: scroll;
+}
+
+code {
+	font-size: 75%;
+}

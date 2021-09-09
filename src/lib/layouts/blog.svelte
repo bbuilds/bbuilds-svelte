@@ -1,7 +1,7 @@
 <script>
 	import { page } from '$app/stores';
 	import MetaTags from '$lib/MetaTags.svelte';
-
+	import '../../content-styles.css';
 	export let title;
 	export let excerpt;
 	export let image;
@@ -72,7 +72,7 @@
 	}}
 />
 
-<article class="blog-post container max-w-3xl mx-auto py-10 lg:py-20 px-4">
+<article class="blog-post container max-w-3xl mx-auto py-10 lg:py-20 px-4 post-content">
 	<slot />
 	<section class="share border-t border-solid border-bbuilds-black mt-4">
 		<h2 class="text-xl my-4">Share This Post</h2>
