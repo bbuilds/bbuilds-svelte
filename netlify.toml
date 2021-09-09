@@ -2,8 +2,3 @@
   command = "npm run build"
   publish = "build/"
   functions = "functions/"
-
-[[redirects]]
-  from = "/sandbox"
-  to = "/"
-  status = 301
